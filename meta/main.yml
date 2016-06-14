@@ -1,8 +1,14 @@
 ---
 galaxy_info:
   author: Jimdo
-  description: 
+  description: Ansible module for Fastly
   company: Jimdo
   license: MIT
   min_ansible_version: 1.2
+  platforms:
+  - name: GenericUNIX
+    versions:
+    - all
+  galaxy_tags:
+    - cdn
 dependencies: []
