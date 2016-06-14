@@ -1,0 +1,8 @@
+---
+galaxy_info:
+  author: Jimdo
+  description: 
+  company: Jimdo
+  license: MIT
+  min_ansible_version: 1.2
+dependencies: []
