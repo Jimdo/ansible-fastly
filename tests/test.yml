@@ -1,0 +1,29 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  roles:
+    - Jimdo.fastly
+  tasks:
+    - name: Fastly Module Test
+      fastly_service:
+        name: Some service
+        domains:
+          - name: test1.example.net
+            comment: redirect domain
+        backends:
+          - name: localhost
+            port: 80
+            address: 127.0.0.1
+        headers:
+          - name: Set Location header
+            dst: http.Location
+            type: response
+            action: set
+            src: '"http://test3.example.net" req.url.path'
+            ignore_if_set: 0
+            priority: 10
+        response_objects:
+          - name: Set 302 status code
+            status: 302
+
