@@ -12,7 +12,7 @@ $ ansible-galaxy install Jimdo.fastly
 
 ## Examples
 
-### Using the `fastly_service` module in a Playbook
+### Using the fastly_service module in a Playbook
 
 ``` yml
 ---
