@@ -14,7 +14,8 @@ $ ansible-galaxy install Jimdo.fastly
 
 ### Using the `fastly_service` module in a Playbook
 
-```
+``` yml
+---
 - hosts: localhost
   connection: local
   gather_facts: False
@@ -41,4 +42,8 @@ $ ansible-galaxy install Jimdo.fastly
         response_objects:
           - name: Set 301 status code
             status: 301
+```
+
+``` bash
+$ ansible-playbook -i localhost, fastly.yml
 ```
