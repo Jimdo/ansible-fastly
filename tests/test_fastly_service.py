@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import os
 import unittest
-from fastly import FastlyClient, FastlyStateEnforcer, FastlySettings, FastlyValidationError
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'library'))
+from fastly_service import FastlyClient, FastlyStateEnforcer, FastlySettings, FastlyValidationError
 
 class TestFastly(unittest.TestCase):
 
