@@ -62,6 +62,7 @@ EXAMPLES = '''
     response_objects:
       - name: Set 301 status code
         status: 301
+        response: Moved Permanently
 
 # Redirect service
 - fastly_service:
@@ -84,6 +85,7 @@ EXAMPLES = '''
     response_objects:
       - name: Set 301 status code
         status: 301
+        response: Moved Permanently
 '''
 
 import httplib
@@ -208,11 +210,13 @@ class FastlyHeader(FastlyObject):
 class FastlyResponseObject(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
+        'response': dict(required=False, type='str', default='Ok'),
         'status': dict(required=True, type='intstr', default=None)
     }
 
     def __init__(self, config):
         self.name = self.read_config(config, 'name')
+        self.response = self.read_config(config, 'response')
         self.status = self.read_config(config, 'status')
 
 
