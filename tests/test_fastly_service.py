@@ -123,7 +123,7 @@ class TestFastly(unittest.TestCase):
         new_settings = self.settings_fixture.copy()
         new_settings.update({
             'response_objects': [{
-                'name': 'Set 302 status code'
+                'status': 302
             }]
         })
 
@@ -278,6 +278,29 @@ class TestFastly(unittest.TestCase):
             'response_objects': [{
                 'name': 'Set 302 status code',
                 'status': 302
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
+
+    @my_vcr.use_cassette()
+    def test_fastly_response_object_status_not_required(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'localhost',
+                'address': '127.0.0.1'
+            }],
+            'headers': [{
+                'name': 'Set Location header',
+                'dst': 'http.Location',
+                'type': 'response',
+                'src': '"https://u.jimcdn.com" req.url.path',
+            }],
+            'response_objects': [{
+                'name': 'Set 200 status code',
             }]
         })
         service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service

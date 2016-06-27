@@ -212,7 +212,7 @@ class FastlyResponseObject(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'response': dict(required=False, type='str', default='Ok'),
-        'status': dict(required=True, type='intstr', default=None)
+        'status': dict(required=False, type='intstr', default='200')
     }
 
     def __init__(self, config):
