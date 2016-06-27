@@ -175,7 +175,7 @@ class FastlyDomain(FastlyObject):
 class FastlyBackend(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'port': dict(required=True, type='int', default=None),
+        'port': dict(required=False, type='int', default=80),
         'address': dict(required=True, type='str', default=None)
     }
 
