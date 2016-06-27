@@ -15,13 +15,14 @@ my_vcr = vcr.VCR(
 class TestFastly(unittest.TestCase):
 
     FASTLY_TEST_SERVICE = 'Jimdo Fastly Ansible Module Test'
+    FASTLY_TEST_DOMAIN = 'cdn.example7000.com'
 
     enforcer = None
     client = None
 
     settings_fixture = {
         'domains': [{
-            'name': 'u.test.jimcdn2.com',
+            'name': FASTLY_TEST_DOMAIN,
             'comment': 'test1'
         }],
         'backends': [{
