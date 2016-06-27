@@ -473,6 +473,7 @@ class FastlyServiceModule(object):
                 state=dict(default='present', choices=['present', 'absent'], type='str'),
                 fastly_api_key=dict(no_log=True, type='str'),
                 name=dict(required=True, type='str'),
+                activate_new_version=dict(required=False, type='bool', default=True),
                 domains=dict(default=None, required=True, type='list'),
                 backends=dict(default=None, required=True, type='list'),
                 headers=dict(default=None, required=False, type='list'),
@@ -507,6 +508,7 @@ class FastlyServiceModule(object):
         try:
             enforcer = self.enforcer()
             service_name = self.module.params['name']
+            activate_new_version = self.module.params['activate_new_version']
 
             if self.module.params['state'] == 'absent':
                 result = enforcer.delete_service(service_name)
@@ -517,7 +519,7 @@ class FastlyServiceModule(object):
 
                 self.module.exit_json(changed=result.changed, service_id=service_id, actions=result.actions)
             else:
-                result = enforcer.apply_settings(service_name, self.settings())
+                result = enforcer.apply_settings(service_name, self.settings(), activate_new_version)
                 self.module.exit_json(changed=result.changed, service_id=result.service.id, actions=result.actions)
 
         except Exception as err:
