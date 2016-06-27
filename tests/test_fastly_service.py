@@ -15,13 +15,14 @@ my_vcr = vcr.VCR(
 class TestFastly(unittest.TestCase):
 
     FASTLY_TEST_SERVICE = 'Jimdo Fastly Ansible Module Test'
+    FASTLY_TEST_DOMAIN = 'cdn.example7000.com'
 
     enforcer = None
     client = None
 
     settings_fixture = {
         'domains': [{
-            'name': 'u.test.jimcdn2.com',
+            'name': FASTLY_TEST_DOMAIN,
             'comment': 'test1'
         }],
         'backends': [{
@@ -122,13 +123,188 @@ class TestFastly(unittest.TestCase):
         new_settings = self.settings_fixture.copy()
         new_settings.update({
             'response_objects': [{
-                'name': 'Set 302 status code'
+                'status': 302
             }]
         })
 
         with self.assertRaises(FastlyValidationError):
             FastlySettings(new_settings)
 
+    @my_vcr.use_cassette()
+    def test_fastly_domain_comment_not_required(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'localhost',
+                'port': '80',
+                'address': '127.0.0.1'
+            }],
+            'headers': [{
+                'name': 'Set Location header',
+                'dst': 'http.Location',
+                'type': 'response',
+                'action': 'set',
+                'src': '"https://u.jimcdn.com" req.url.path',
+                'ignore_if_set': False,
+                'priority': 10
+            }],
+            'response_objects': [{
+                'name': 'Set 302 status code',
+                'status': 302
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
+
+    @my_vcr.use_cassette()
+    def test_fastly_backend_port_not_required(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'localhost',
+                'address': '127.0.0.1'
+            }],
+            'headers': [{
+                'name': 'Set Location header',
+                'dst': 'http.Location',
+                'type': 'response',
+                'action': 'set',
+                'src': '"https://u.jimcdn.com" req.url.path',
+                'ignore_if_set': False,
+                'priority': 10
+            }],
+            'response_objects': [{
+                'name': 'Set 302 status code',
+                'status': 302
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
+
+    @my_vcr.use_cassette()
+    def test_fastly_header_priority_not_required(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'localhost',
+                'address': '127.0.0.1'
+            }],
+            'headers': [{
+                'name': 'Set Location header',
+                'dst': 'http.Location',
+                'type': 'response',
+                'action': 'set',
+                'src': '"https://u.jimcdn.com" req.url.path',
+                'ignore_if_set': False
+            }],
+            'response_objects': [{
+                'name': 'Set 302 status code',
+                'status': 302
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
+
+    @my_vcr.use_cassette()
+    def test_fastly_header_ignore_if_set_not_required(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'localhost',
+                'address': '127.0.0.1'
+            }],
+            'headers': [{
+                'name': 'Set Location header',
+                'dst': 'http.Location',
+                'type': 'response',
+                'action': 'set',
+                'src': '"https://u.jimcdn.com" req.url.path',
+            }],
+            'response_objects': [{
+                'name': 'Set 302 status code',
+                'status': 302
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
+
+    @my_vcr.use_cassette()
+    def test_fastly_header_type_required(self):
+        with self.assertRaises(FastlyValidationError):
+            FastlySettings({
+                'domains': [{
+                    'name': self.FASTLY_TEST_DOMAIN,
+                }],
+                'backends': [{
+                    'name': 'localhost',
+                    'address': '127.0.0.1'
+                }],
+                'headers': [{
+                    'name': 'Set Location header',
+                    'dst': 'http.Location',
+                    'action': 'set',
+                    'src': '"https://u.jimcdn.com" req.url.path',
+                }],
+                'response_objects': [{
+                    'name': 'Set 302 status code',
+                    'status': 302
+                }]
+            })
+
+    @my_vcr.use_cassette()
+    def test_fastly_header_action_not_required(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'localhost',
+                'address': '127.0.0.1'
+            }],
+            'headers': [{
+                'name': 'Set Location header',
+                'dst': 'http.Location',
+                'type': 'response',
+                'src': '"https://u.jimcdn.com" req.url.path',
+            }],
+            'response_objects': [{
+                'name': 'Set 302 status code',
+                'status': 302
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
+
+    @my_vcr.use_cassette()
+    def test_fastly_response_object_status_not_required(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'localhost',
+                'address': '127.0.0.1'
+            }],
+            'headers': [{
+                'name': 'Set Location header',
+                'dst': 'http.Location',
+                'type': 'response',
+                'src': '"https://u.jimcdn.com" req.url.path',
+            }],
+            'response_objects': [{
+                'name': 'Set 200 status code',
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
 
 if __name__ == '__main__':
     unittest.main()

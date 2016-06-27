@@ -136,7 +136,7 @@ class FastlyObject(object):
 
         if choices is not None and value not in choices:
             raise FastlyValidationError(self.__class__.__name__,
-                                        "Field '%s' must be one of %s" % (param_name, choices.join(',')))
+                                        "Field '%s' must be one of %s" % (param_name, ','.join(choices)))
 
         if param_type == 'str' and isinstance(value, str):
             value = unicode(value)
@@ -164,7 +164,7 @@ class FastlyObject(object):
 class FastlyDomain(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'comment': dict(required=True, type='str', default=None)
+        'comment': dict(required=False, type='str', default='')
     }
 
     def __init__(self, config):
@@ -175,7 +175,7 @@ class FastlyDomain(FastlyObject):
 class FastlyBackend(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'port': dict(required=True, type='int', default=None),
+        'port': dict(required=False, type='int', default=80),
         'address': dict(required=True, type='str', default=None)
     }
 
@@ -187,14 +187,15 @@ class FastlyBackend(FastlyObject):
 
 class FastlyHeader(FastlyObject):
     schema = {
-        'action': dict(required=True, type='str', default=None,
+        'action': dict(required=False, type='str', default='set',
                        choices=['set', 'append', 'delete', 'regex', 'regex_repeat']),
         'name': dict(required=True, type='str', default=None),
         'dst': dict(required=True, type='str', default=None),
-        'type': dict(required=True, type='str', default=None),
+        'type': dict(required=True, type='str', default=None,
+                     choices=['request', 'fetch', 'cache', 'response']),
         'src': dict(required=True, type='str', default=None),
-        'ignore_if_set': dict(required=True, type='intstr', default=None),
-        'priority': dict(required=True, type='intstr', default=None)
+        'ignore_if_set': dict(required=False, type='intstr', default='0'),
+        'priority': dict(required=False, type='intstr', default='100')
     }
 
     def __init__(self, config):
@@ -211,7 +212,7 @@ class FastlyResponseObject(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'response': dict(required=False, type='str', default='Ok'),
-        'status': dict(required=True, type='intstr', default=None)
+        'status': dict(required=False, type='intstr', default='200')
     }
 
     def __init__(self, config):
