@@ -136,7 +136,7 @@ class FastlyObject(object):
 
         if choices is not None and value not in choices:
             raise FastlyValidationError(self.__class__.__name__,
-                                        "Field '%s' must be one of %s" % (param_name, choices.join(',')))
+                                        "Field '%s' must be one of %s" % (param_name, ','.join(choices)))
 
         if param_type == 'str' and isinstance(value, str):
             value = unicode(value)
