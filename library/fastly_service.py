@@ -193,7 +193,7 @@ class FastlyHeader(FastlyObject):
         'dst': dict(required=True, type='str', default=None),
         'type': dict(required=True, type='str', default=None),
         'src': dict(required=True, type='str', default=None),
-        'ignore_if_set': dict(required=True, type='intstr', default=None),
+        'ignore_if_set': dict(required=False, type='intstr', default='0'),
         'priority': dict(required=False, type='intstr', default='100')
     }
 
