@@ -267,6 +267,10 @@ class FastlyService(object):
         if service_settings['active_version'] is not None:
             self.active_version = FastlyVersion(service_settings['active_version'])
 
+        self.latest_version = None
+        if service_settings['version'] is not None:
+            self.latest_version = FastlyVersion(service_settings['version'])
+
         self.id = service_settings['id']
         self.name = service_settings['name']
 
@@ -401,7 +405,7 @@ class FastlyStateEnforcer(object):
     def __init__(self, client):
         self.client = client
 
-    def apply_settings(self, service_name, fastly_settings):
+    def apply_settings(self, service_name, fastly_settings, activate_new_version=True):
 
         actions = []
 
@@ -411,18 +415,23 @@ class FastlyStateEnforcer(object):
             service = self.client.create_service(service_name)
             actions.append("Created new service %s" % service_name)
 
-        if service.active_version is None:
-            self.deploy_version_with_settings(service.id, fastly_settings)
+        if activate_new_version:
+            current_version = service.active_version
+        else:
+            current_version = service.latest_version
+
+        if current_version is None:
+            self.deploy_version_with_settings(service.id, fastly_settings, activate_new_version)
             actions.append("Deployed new version because service has no active version")
-        elif fastly_settings != service.active_version.settings:
-            self.deploy_version_with_settings(service.id, fastly_settings)
+        elif fastly_settings != current_version.settings:
+            self.deploy_version_with_settings(service.id, fastly_settings, activate_new_version)
             actions.append("Deployed new version because settings are not up to date")
 
         changed = len(actions) > 0
         service = self.client.get_service(service.id)
         return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service)
 
-    def deploy_version_with_settings(self, service_id, settings):
+    def deploy_version_with_settings(self, service_id, settings, activate_version):
         version = self.client.create_version(service_id)
         version_number = version['number']
 
@@ -438,7 +447,8 @@ class FastlyStateEnforcer(object):
         for response_object in settings.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
-        self.client.activate_version(service_id, version_number)
+        if activate_version:
+            self.client.activate_version(service_id, version_number)
 
     def delete_service(self, service_name):
         service = self.client.get_service_by_name(service_name)

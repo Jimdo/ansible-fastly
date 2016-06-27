@@ -72,6 +72,21 @@ class TestFastly(unittest.TestCase):
         self.assertTrue(service.active_version.active)
         self.assertEqual(service.active_version.settings.response_objects, test_settings.response_objects)
 
+    # Given 'Service {name} does not exist'
+    # And 'activate_new_version is disabled'
+    # Then 'Service {name} should be created'
+    # Then 'A new version with settings to be applied should be created'
+    # And 'The new version should not be activated'
+    @my_vcr.use_cassette()
+    def test_service_does_not_exist_and_activate_new_version_is_disabled(self):
+        self.client.delete_service(self.FASTLY_TEST_SERVICE)
+
+        test_settings = FastlySettings(self.settings_fixture)
+
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, test_settings, False).service
+        self.assertFalse(service.latest_version.active)
+        self.assertEqual(service.latest_version.settings.response_objects, test_settings.response_objects)
+
     # Given 'Service {name} already exists'
     # And 'Settings of active version are different from settings to be applied'
     # Then 'A new version with settings to be applied should be created'
@@ -98,6 +113,33 @@ class TestFastly(unittest.TestCase):
         self.assertTrue(new_service.active_version.active)
 
     # Given 'Service {name} already exists'
+    # And 'activate_new_version is disabled'
+    # And 'Settings of current version are different from settings to be applied'
+    # Then 'A new version with settings to be applied should be created'
+    # And 'The new version should not be activated'
+    @my_vcr.use_cassette()
+    def test_service_does_exist_and_activate_new_version_is_disabled(self):
+        new_settings = self.settings_fixture.copy()
+        new_settings.update({
+            'response_objects': [{
+                'name': 'Set 301 status code',
+                'status': 301
+            }]
+        })
+
+        old_settings = FastlySettings(self.settings_fixture)
+        new_settings = FastlySettings(new_settings)
+
+        old_service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, old_settings, False).service
+        new_service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, new_settings, False).service
+
+        self.assertNotEqual(new_service.latest_version.settings.response_objects, old_settings.response_objects)
+        self.assertNotEqual(old_service.latest_version.number, new_service.latest_version.number)
+
+        self.assertFalse(new_service.latest_version.active)
+
+
+    # Given 'Service {name} already exists'
     # And 'Settings of active version are equal to settings to be applied'
     # Then 'Nothing should happen'
     @my_vcr.use_cassette()
@@ -111,6 +153,22 @@ class TestFastly(unittest.TestCase):
         new_service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, new_settings).service
 
         self.assertEqual(old_service.active_version.number, new_service.active_version.number)
+
+    # Given 'Service {name} already exists'
+    # And 'activate_new_version is disabled'
+    # And 'Settings of current version are equal to settings to be applied'
+    # Then 'Nothing should happen'
+    @my_vcr.use_cassette()
+    def test_service_does_exist_and_settings_are_equal_and_activate_new_version_is_disabled(self):
+        new_settings = self.settings_fixture.copy()
+
+        old_settings = FastlySettings(self.settings_fixture)
+        new_settings = FastlySettings(new_settings)
+
+        old_service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, old_settings, False).service
+        new_service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, new_settings, False).service
+
+        self.assertEqual(old_service.latest_version.number, new_service.latest_version.number)
 
     @my_vcr.use_cassette()
     def test_fastly_settings_normalization(self):
