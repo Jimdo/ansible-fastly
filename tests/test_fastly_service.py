@@ -185,6 +185,32 @@ class TestFastly(unittest.TestCase):
         service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
         self.assertEqual(service.active_version.settings, settings)
 
+    @my_vcr.use_cassette()
+    def test_fastly_header_priority_not_required(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'localhost',
+                'address': '127.0.0.1'
+            }],
+            'headers': [{
+                'name': 'Set Location header',
+                'dst': 'http.Location',
+                'type': 'response',
+                'action': 'set',
+                'src': '"https://u.jimcdn.com" req.url.path',
+                'ignore_if_set': False
+            }],
+            'response_objects': [{
+                'name': 'Set 302 status code',
+                'status': 302
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
+
 
 if __name__ == '__main__':
     unittest.main()
