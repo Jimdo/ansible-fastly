@@ -187,7 +187,7 @@ class FastlyBackend(FastlyObject):
 
 class FastlyHeader(FastlyObject):
     schema = {
-        'action': dict(required=True, type='str', default=None,
+        'action': dict(required=False, type='str', default='set',
                        choices=['set', 'append', 'delete', 'regex', 'regex_repeat']),
         'name': dict(required=True, type='str', default=None),
         'dst': dict(required=True, type='str', default=None),
