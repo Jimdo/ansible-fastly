@@ -17,6 +17,11 @@ options:
         required: false
         description:
             - Fastly API key. If not set then the value of the FASTLY_API_KEY environment variable is used.
+    activate_new_version:
+        required: false
+        default: true
+        description:
+            - Configures whether newly created versions should be activated automatically
     domains:
         required: true
         description:
