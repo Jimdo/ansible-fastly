@@ -190,6 +190,21 @@ class FastlyBackend(FastlyObject):
         self.address = self.read_config(config, 'address')
 
 
+class FastlyGzip(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'cache_condition': dict(required=False, type='str', default=None),
+        'content_types': dict(required=False, type='str', default=''),
+        'extensions': dict(required=False, type='str', default=''),
+    }
+
+    def __init__(self, config):
+        self.name = self.read_config(config, 'name')
+        self.cache_condition = self.read_config(config, 'cache_condition')
+        self.content_types = self.read_config(config, 'content_types')
+        self.extensions = self.read_config(config, 'extensions')
+
+
 class FastlyHeader(FastlyObject):
     schema = {
         'action': dict(required=False, type='str', default='set',
