@@ -164,7 +164,7 @@ class FastlyObject(object):
 class FastlyDomain(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'comment': dict(required=True, type='str', default=None)
+        'comment': dict(required=False, type='str', default='')
     }
 
     def __init__(self, config):
