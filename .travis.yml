@@ -12,6 +12,9 @@ addons:
     - python-pip
 
 install:
+  # Install vcrpy
+  - pip install vcrpy
+
   # Install ansible
   - pip install ansible
 
@@ -24,6 +27,8 @@ install:
   - ln -snf $PWD ../Jimdo.fastly
 
 script:
+  # Run integration test
+  - FASTLY_API_KEY=test python tests/*.py
   # Basic role syntax check
   - ansible-playbook tests/test.yml -i tests/inventory --syntax-check
 

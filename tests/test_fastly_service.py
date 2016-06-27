@@ -1,7 +1,16 @@
 #!/usr/bin/env python
 import os
 import unittest
-from fastly import FastlyClient, FastlyStateEnforcer, FastlySettings, FastlyValidationError
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'library'))
+from fastly_service import FastlyClient, FastlyStateEnforcer, FastlySettings, FastlyValidationError
+import vcr
+
+my_vcr = vcr.VCR(
+        filter_headers = ['Fastly-Key'],
+        cassette_library_dir = 'tests/fixtures/cassettes',
+        record_mode='once',
+)
 
 class TestFastly(unittest.TestCase):
 
@@ -35,6 +44,7 @@ class TestFastly(unittest.TestCase):
         }]
     }
 
+    @my_vcr.use_cassette()
     def setUp(self):
         if self.enforcer is None:
             if 'FASTLY_API_KEY' not in os.environ:
@@ -43,6 +53,7 @@ class TestFastly(unittest.TestCase):
             self.client = FastlyClient(os.environ['FASTLY_API_KEY'])
             self.enforcer = FastlyStateEnforcer(self.client)
 
+    @my_vcr.use_cassette()
     def tearDown(self):
         self.client.delete_service(self.FASTLY_TEST_SERVICE)
 
@@ -50,6 +61,7 @@ class TestFastly(unittest.TestCase):
     # Then 'Service {name} should be created'
     # Then 'A new version with settings to be applied should be created'
     # And 'The new version should be activated'
+    @my_vcr.use_cassette()
     def test_service_does_not_exist(self):
         self.client.delete_service(self.FASTLY_TEST_SERVICE)
 
@@ -63,6 +75,7 @@ class TestFastly(unittest.TestCase):
     # And 'Settings of active version are different from settings to be applied'
     # Then 'A new version with settings to be applied should be created'
     # And 'The new version should be activated'
+    @my_vcr.use_cassette()
     def test_service_does_exist(self):
         new_settings = self.settings_fixture.copy()
         new_settings.update({
@@ -86,6 +99,7 @@ class TestFastly(unittest.TestCase):
     # Given 'Service {name} already exists'
     # And 'Settings of active version are equal to settings to be applied'
     # Then 'Nothing should happen'
+    @my_vcr.use_cassette()
     def test_service_does_exist_and_settings_are_equal(self):
         new_settings = self.settings_fixture.copy()
 
@@ -97,11 +111,13 @@ class TestFastly(unittest.TestCase):
 
         self.assertEqual(old_service.active_version.number, new_service.active_version.number)
 
+    @my_vcr.use_cassette()
     def test_fastly_settings_normalization(self):
         settings = FastlySettings(self.settings_fixture)
         self.assertEqual(settings.response_objects[0].status, '302')
         self.assertNotEqual(settings.response_objects[0].status, 302)
 
+    @my_vcr.use_cassette()
     def test_fastly_settings_validation(self):
         new_settings = self.settings_fixture.copy()
         new_settings.update({
