@@ -135,8 +135,10 @@ class FastlyObject(object):
             raise FastlyValidationError(self.__class__.__name__, "Field '%s' is required but not set" % param_name)
 
         if validate_choices and choices is not None and value not in choices:
+            print value
+            print "Field '%s' must be one of %s" % (param_name, ', '.join(choices))
             raise FastlyValidationError(self.__class__.__name__,
-                                        "Field '%s' must be one of %s" % (param_name, ','.join(choices)))
+                                        "Field '%s' must be one of %s" % (param_name, ', '.join(choices)))
 
         if param_type == 'str' and isinstance(value, str):
             value = unicode(value)
@@ -183,6 +185,24 @@ class FastlyBackend(FastlyObject):
         self.name = self.read_config(config, validate_choices, 'name')
         self.port = self.read_config(config, validate_choices, 'port')
         self.address = self.read_config(config, validate_choices, 'address')
+
+
+class FastlyCondition(FastlyObject):
+    schema = {
+        'comment': dict(required=False, type='str', default=None),
+        'name': dict(required=True, type='str', default=None),
+        'priority': dict(required=False, type='intstr', default='100'),
+        'statement': dict(required=False, type='str', default=''),
+        'type': dict(required=True, type='str', default=None,
+                     choices=['cache', 'prefetch', 'request', 'response']),
+    }
+
+    def __init__(self, config, validate_choices):
+        self.comment = self.read_config(config, validate_choices, 'comment')
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.priority = self.read_config(config, validate_choices, 'priority')
+        self.statement = self.read_config(config, validate_choices, 'statement')
+        self.type = self.read_config(config, validate_choices, 'type')
 
 
 class FastlyGzip(FastlyObject):
@@ -240,6 +260,7 @@ class FastlySettings(object):
     def __init__(self, settings, validate_choices = True):
         self.domains = []
         self.backends = []
+        self.conditions = []
         self.gzips = []
         self.headers = []
         self.response_objects = []
@@ -251,6 +272,10 @@ class FastlySettings(object):
         if 'backends' in settings:
             for backend in settings['backends']:
                 self.backends.append(FastlyBackend(backend, validate_choices))
+
+        if 'conditions' in settings:
+            for condition in settings['conditions']:
+                self.conditions.append(FastlyCondition(condition, validate_choices))
 
         if 'gzips' in settings:
             for gzip in settings['gzips']:
@@ -393,6 +418,14 @@ class FastlyClient(object):
             raise Exception("Error creating backend for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_condition(self, service_id, version, condition):
+        response = self._request('/service/%s/version/%s/condition' % (service_id, version), 'POST', condition)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating condition for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
     def create_gzip(self, service_id, version, gzip):
         response = self._request('/service/%s/version/%s/gzip' % (service_id, version), 'POST',
                                  gzip)
@@ -461,6 +494,9 @@ class FastlyStateEnforcer(object):
 
         for backend in settings.backends:
             self.client.create_backend(service_id, version_number, backend)
+
+        for condition in settings.conditions:
+            self.client.create_condition(service_id, version_number, condition)
 
         for gzip in settings.gzips:
             self.client.create_gzip(service_id, version_number, gzip)
