@@ -125,7 +125,7 @@ class FastlyObject(object):
     def to_json(self):
         return self.__dict__
 
-    def read_config(self, config, param_name):
+    def read_config(self, config, validate_choices, param_name):
         required = self.schema[param_name].get('required', True)
         param_type = self.schema[param_name].get('type', 'str')
         default = self.schema[param_name].get('default', None)
@@ -139,7 +139,7 @@ class FastlyObject(object):
         if value is None and required:
             raise FastlyValidationError(self.__class__.__name__, "Field '%s' is required but not set" % param_name)
 
-        if choices is not None and value not in choices:
+        if validate_choices and choices is not None and value not in choices:
             raise FastlyValidationError(self.__class__.__name__,
                                         "Field '%s' must be one of %s" % (param_name, ','.join(choices)))
 
@@ -172,9 +172,9 @@ class FastlyDomain(FastlyObject):
         'comment': dict(required=False, type='str', default='')
     }
 
-    def __init__(self, config):
-        self.name = self.read_config(config, 'name')
-        self.comment = self.read_config(config, 'comment')
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.comment = self.read_config(config, validate_choices, 'comment')
 
 
 class FastlyBackend(FastlyObject):
@@ -184,10 +184,10 @@ class FastlyBackend(FastlyObject):
         'address': dict(required=True, type='str', default=None)
     }
 
-    def __init__(self, config):
-        self.name = self.read_config(config, 'name')
-        self.port = self.read_config(config, 'port')
-        self.address = self.read_config(config, 'address')
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.port = self.read_config(config, validate_choices, 'port')
+        self.address = self.read_config(config, validate_choices, 'address')
 
 
 class FastlyGzip(FastlyObject):
@@ -198,11 +198,11 @@ class FastlyGzip(FastlyObject):
         'extensions': dict(required=False, type='str', default=''),
     }
 
-    def __init__(self, config):
-        self.name = self.read_config(config, 'name')
-        self.cache_condition = self.read_config(config, 'cache_condition')
-        self.content_types = self.read_config(config, 'content_types')
-        self.extensions = self.read_config(config, 'extensions')
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.cache_condition = self.read_config(config, validate_choices, 'cache_condition')
+        self.content_types = self.read_config(config, validate_choices, 'content_types')
+        self.extensions = self.read_config(config, validate_choices, 'extensions')
 
 
 class FastlyHeader(FastlyObject):
@@ -218,14 +218,14 @@ class FastlyHeader(FastlyObject):
         'priority': dict(required=False, type='intstr', default='100')
     }
 
-    def __init__(self, config):
-        self.name = self.read_config(config, 'name')
-        self.dst = self.read_config(config, 'dst')
-        self.type = self.read_config(config, 'type')
-        self.action = self.read_config(config, 'action')
-        self.src = self.read_config(config, 'src')
-        self.ignore_if_set = self.read_config(config, 'ignore_if_set')
-        self.priority = self.read_config(config, 'priority')
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.dst = self.read_config(config, validate_choices, 'dst')
+        self.type = self.read_config(config, validate_choices, 'type')
+        self.action = self.read_config(config, validate_choices, 'action')
+        self.src = self.read_config(config, validate_choices, 'src')
+        self.ignore_if_set = self.read_config(config, validate_choices, 'ignore_if_set')
+        self.priority = self.read_config(config, validate_choices, 'priority')
 
 
 class FastlyResponseObject(FastlyObject):
@@ -235,14 +235,14 @@ class FastlyResponseObject(FastlyObject):
         'status': dict(required=False, type='intstr', default='200')
     }
 
-    def __init__(self, config):
-        self.name = self.read_config(config, 'name')
-        self.response = self.read_config(config, 'response')
-        self.status = self.read_config(config, 'status')
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.response = self.read_config(config, validate_choices, 'response')
+        self.status = self.read_config(config, validate_choices, 'status')
 
 
 class FastlySettings(object):
-    def __init__(self, settings):
+    def __init__(self, settings, validate_choices = True):
         self.domains = []
         self.backends = []
         self.gzips = []
@@ -251,23 +251,23 @@ class FastlySettings(object):
 
         if 'domains' in settings:
             for domain in settings['domains']:
-                self.domains.append(FastlyDomain(domain))
+                self.domains.append(FastlyDomain(domain, validate_choices))
 
         if 'backends' in settings:
             for backend in settings['backends']:
-                self.backends.append(FastlyBackend(backend))
+                self.backends.append(FastlyBackend(backend, validate_choices))
 
         if 'gzips' in settings:
             for gzip in settings['gzips']:
-                self.gzips.append(FastlyGzip(gzip))
+                self.gzips.append(FastlyGzip(gzip, validate_choices))
 
         if 'headers' in settings:
             for header in settings['headers']:
-                self.headers.append(FastlyHeader(header))
+                self.headers.append(FastlyHeader(header, validate_choices))
 
         if 'response_objects' in settings:
             for response_object in settings['response_objects']:
-                self.response_objects.append(FastlyResponseObject(response_object))
+                self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
     def __eq__(self, other):
         return self.domains == other.domains \
@@ -282,7 +282,7 @@ class FastlySettings(object):
 
 class FastlyVersion(object):
     def __init__(self, version_settings):
-        self.settings = FastlySettings(version_settings)
+        self.settings = FastlySettings(version_settings, False)
         self.number = version_settings['number']
         self.active = version_settings['active']
 
