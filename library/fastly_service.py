@@ -249,11 +249,11 @@ class FastlySettings(object):
         self.headers = []
         self.response_objects = []
 
-        if settings['domains']:
+        if 'domains' in settings:
             for domain in settings['domains']:
                 self.domains.append(FastlyDomain(domain))
 
-        if settings['backends']:
+        if 'backends' in settings:
             for backend in settings['backends']:
                 self.backends.append(FastlyBackend(backend))
 
@@ -261,11 +261,11 @@ class FastlySettings(object):
             for gzip in settings['gzips']:
                 self.gzips.append(FastlyGzip(gzip))
 
-        if settings['headers']:
+        if 'headers' in settings:
             for header in settings['headers']:
                 self.headers.append(FastlyHeader(header))
 
-        if settings['response_objects']:
+        if 'response_objects' in settings:
             for response_object in settings['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object))
 
