@@ -28,7 +28,7 @@ install:
 
 script:
   # Run integration test
-  - FASTLY_API_KEY=test python tests/*.py
+  - FASTLY_API_KEY=test python -m unittest discover tests
   # Basic role syntax check
   - ansible-playbook tests/test.yml -i tests/inventory --syntax-check
 
