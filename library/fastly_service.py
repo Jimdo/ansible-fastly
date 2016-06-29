@@ -188,7 +188,7 @@ class FastlyBackend(FastlyObject):
 class FastlyGzip(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'cache_condition': dict(required=False, type='str', default=None),
+        'cache_condition': dict(required=False, type='str', default=''),
         'content_types': dict(required=False, type='str', default=''),
         'extensions': dict(required=False, type='str', default=''),
     }
@@ -240,6 +240,7 @@ class FastlySettings(object):
     def __init__(self, settings):
         self.domains = []
         self.backends = []
+        self.gzips = []
         self.headers = []
         self.response_objects = []
 
@@ -250,6 +251,10 @@ class FastlySettings(object):
         if settings['backends']:
             for backend in settings['backends']:
                 self.backends.append(FastlyBackend(backend))
+
+        if 'gzips' in settings:
+            for gzip in settings['gzips']:
+                self.gzips.append(FastlyGzip(gzip))
 
         if settings['headers']:
             for header in settings['headers']:
@@ -262,6 +267,7 @@ class FastlySettings(object):
     def __eq__(self, other):
         return self.domains == other.domains \
                and self.backends == other.backends \
+               and self.gzips == other.gzips \
                and self.headers == other.headers \
                and self.response_objects == other.response_objects
 
@@ -387,6 +393,15 @@ class FastlyClient(object):
             raise Exception("Error creating backend for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_gzip(self, service_id, version, gzip):
+        response = self._request('/service/%s/version/%s/gzip' % (service_id, version), 'POST',
+                                 gzip)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating gzip for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
     def create_header(self, service_id, version, header):
         response = self._request('/service/%s/version/%s/header' % (service_id, version), 'POST', header)
         if response.status == 200:
@@ -446,6 +461,9 @@ class FastlyStateEnforcer(object):
 
         for backend in settings.backends:
             self.client.create_backend(service_id, version_number, backend)
+
+        for gzip in settings.gzips:
+            self.client.create_gzip(service_id, version_number, gzip)
 
         for header in settings.headers:
             self.client.create_header(service_id, version_number, header)
