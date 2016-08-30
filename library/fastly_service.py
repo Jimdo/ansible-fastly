@@ -518,6 +518,7 @@ class FastlyServiceModule(object):
                 activate_new_version=dict(required=False, type='bool', default=True),
                 domains=dict(default=None, required=True, type='list'),
                 backends=dict(default=None, required=True, type='list'),
+                gzips=dict(default=None, required=False, type='list'),
                 headers=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
             ),
@@ -538,6 +539,7 @@ class FastlyServiceModule(object):
             return FastlySettings({
                 'domains': self.module.params['domains'],
                 'backends': self.module.params['backends'],
+                'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
                 'response_objects': self.module.params['response_objects']
             })
