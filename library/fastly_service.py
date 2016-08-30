@@ -30,6 +30,10 @@ options:
         required: true
         description:
             - List of backends to service requests from your domains
+    gzips:
+        required: false
+        description:
+            - List of gzip configurations
     headers:
         required: false
         description:
