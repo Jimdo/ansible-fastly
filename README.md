@@ -14,8 +14,8 @@ $ ansible-galaxy install Jimdo.fastly
 
 ### Module options
 
-| Name                 | required | description                                                                                   | default |
-|----------------------|----------|-----------------------------------------------------------------------------------------------|---------|
+| Name                 | Required | Description                                                                                   | Default |
+|:---------------------|:---------|:----------------------------------------------------------------------------------------------|:--------|
 | name                 | true     | The unique name for the service to create                                                     |         |
 | fastly_api_key       | false    | Fastly API key. If not set then the value of the FASTLY_API_KEY environment variable is used. |         |
 | activate_new_version | false    | Configures whether newly created versions should be activated automatically                   | true    |
