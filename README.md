@@ -10,7 +10,7 @@ Ansible module to configure services in Fastly
 $ ansible-galaxy install Jimdo.fastly
 ```
 
-## Documentations
+## Documentation
 
 ### Module options
 
