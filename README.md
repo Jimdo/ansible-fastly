@@ -21,9 +21,22 @@ $ ansible-galaxy install Jimdo.fastly
 | activate_new_version | false    | Configures whether newly created versions should be activated automatically                   | true    |
 | domains              | true     | List of domain names to serve as entry points for your service                                |         |
 | backends             | true     | List of backends to service requests from your domains                                        |         |
+| conditions           | false    | List of conditions                                                                            |         |
 | gzips                | false    | List of gzip configurations                                                                   |         |
 | headers              | false    | List of headers to manipulate for each request                                                |         |
 | response_objects     | false    | List of response objects                                                                      |         |
+
+### Condition
+
+[Fastly documentation](https://docs.fastly.com/api/config#condition)
+
+| Field     | Required | Type                                                    | Default |
+|:----------|:---------|:--------------------------------------------------------|:--------|
+| name      | true     | string                                                  |         |
+| comment   | false    | string                                                  |         |
+| priority  | false    | integer                                                 | 0       |
+| statement | true     | string                                                  |         |
+| type      | true     | enum ('REQUEST', 'PREFETCH', 'CACHE', 'RESPONSE')       |         |
 
 ## Examples
 

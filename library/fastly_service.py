@@ -30,6 +30,10 @@ options:
         required: true
         description:
             - List of backends to service requests from your domains
+    conditions:
+        required: false
+        description:
+            - List of conditions
     gzips:
         required: false
         description:
@@ -194,6 +198,24 @@ class FastlyBackend(FastlyObject):
         self.address = self.read_config(config, validate_choices, 'address')
 
 
+class FastlyCondition(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'comment': dict(required=False, type='str', default=''),
+        'priority': dict(required=False, type='intstr', default='0'),
+        'statement': dict(required=True, type='str'),
+        'type': dict(required=True, type='str', default=None,
+                     choices=['REQUEST', 'PREFETCH', 'CACHE', 'RESPONSE']),
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.comment = self.read_config(config, validate_choices, 'comment')
+        self.priority = self.read_config(config, validate_choices, 'priority')
+        self.statement = self.read_config(config, validate_choices, 'statement')
+        self.type = self.read_config(config, validate_choices, 'type')
+
+
 class FastlyGzip(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
@@ -249,6 +271,7 @@ class FastlySettings(object):
     def __init__(self, settings, validate_choices = True):
         self.domains = []
         self.backends = []
+        self.conditions = []
         self.gzips = []
         self.headers = []
         self.response_objects = []
@@ -260,6 +283,10 @@ class FastlySettings(object):
         if 'backends' in settings:
             for backend in settings['backends']:
                 self.backends.append(FastlyBackend(backend, validate_choices))
+
+        if 'conditions' in settings:
+            for condition in settings['conditions']:
+                self.conditions.append(FastlyCondition(condition, validate_choices))
 
         if 'gzips' in settings:
             for gzip in settings['gzips']:
@@ -276,6 +303,7 @@ class FastlySettings(object):
     def __eq__(self, other):
         return self.domains == other.domains \
                and self.backends == other.backends \
+               and self.conditions == other.conditions \
                and self.gzips == other.gzips \
                and self.headers == other.headers \
                and self.response_objects == other.response_objects
@@ -406,6 +434,14 @@ class FastlyClient(object):
             raise Exception("Error creating backend for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_condition(self, service_id, version, condition):
+        response = self._request('/service/%s/version/%s/condition' % (service_id, version), 'POST', condition)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating condition for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
     def create_gzip(self, service_id, version, gzip):
         response = self._request('/service/%s/version/%s/gzip' % (service_id, version), 'POST',
                                  gzip)
@@ -480,6 +516,9 @@ class FastlyStateEnforcer(object):
         for backend in settings.backends:
             self.client.create_backend(service_id, version_number, backend)
 
+        for condition in settings.conditions:
+            self.client.create_condition(service_id, version_number, condition)
+
         for gzip in settings.gzips:
             self.client.create_gzip(service_id, version_number, gzip)
 
@@ -518,6 +557,7 @@ class FastlyServiceModule(object):
                 activate_new_version=dict(required=False, type='bool', default=True),
                 domains=dict(default=None, required=True, type='list'),
                 backends=dict(default=None, required=True, type='list'),
+                conditions=dict(default=None, required=True, type='list'),
                 gzips=dict(default=None, required=False, type='list'),
                 headers=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
@@ -539,6 +579,7 @@ class FastlyServiceModule(object):
             return FastlySettings({
                 'domains': self.module.params['domains'],
                 'backends': self.module.params['backends'],
+                'conditions': self.module.params['conditions'],
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
                 'response_objects': self.module.params['response_objects']
