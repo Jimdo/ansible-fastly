@@ -54,6 +54,17 @@ $ ansible-galaxy install Jimdo.fastly
 | src           | true     | string                                                    |         |
 | substitution  | false    | string                                                    |         |
 
+### Response Object
+
+[Fastly documentation](https://docs.fastly.com/api/config#response_object)
+
+| Field             | Required | Type                                                      | Default |
+|:------------------|:---------|:----------------------------------------------------------|:--------|
+| name              | true     | string                                                    |         |
+| request_condition | false    | string                                                    |         |
+| response          | false    | string                                                    | Ok      |
+| status            | false    | int                                                       | 200     |
+
 ## Examples
 
 ### Using the fastly_service module in a Playbook

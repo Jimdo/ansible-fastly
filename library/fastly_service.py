@@ -261,12 +261,14 @@ class FastlyHeader(FastlyObject):
 class FastlyResponseObject(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
+        'request_condition': dict(required=False, type='str', default=''),
         'response': dict(required=False, type='str', default='Ok'),
         'status': dict(required=False, type='intstr', default='200')
     }
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
+        self.request_condition = self.read_config(config, validate_choices, 'request_condition')
         self.response = self.read_config(config, validate_choices, 'response')
         self.status = self.read_config(config, validate_choices, 'status')
 
