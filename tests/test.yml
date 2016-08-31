@@ -15,6 +15,10 @@
           - name: localhost
             port: 80
             address: 127.0.0.1
+        gzips:
+          - name: Gzip json
+            content_types: 'application/json'
+            extensions: 'json'
         headers:
           - name: Set Location header
             dst: http.Location
