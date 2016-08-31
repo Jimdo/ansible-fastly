@@ -1,0 +1,25 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Content-Type: [application/json]
+    method: GET
+    uri: https://api.fastly.com/service/search?name=Fastly%20Ansible%20Module%20Test
+  response:
+    body: {string: !!python/unicode '{"msg":"Record not found","detail":"Cannot load
+        service ''15DqjG1ON0S28gluYrATvC''-''Fastly Ansible Module Test''"}'}
+    headers:
+      accept-ranges: [bytes]
+      age: ['0']
+      connection: [keep-alive]
+      content-length: ['111']
+      content-type: [application/json]
+      date: ['Wed, 31 Aug 2016 08:58:12 GMT']
+      status: [404 Not Found]
+      vary: [Accept-Encoding]
+      via: [1.1 varnish, 1.1 varnish]
+      x-cache: ['MISS, MISS']
+      x-cache-hits: ['0, 0']
+      x-served-by: ['app-slwdc9051-SL, cache-lhr6350-LHR']
+    status: {code: 404, message: Not Found}
+version: 1
