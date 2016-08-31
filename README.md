@@ -38,6 +38,22 @@ $ ansible-galaxy install Jimdo.fastly
 | statement | true     | string                                                  |         |
 | type      | true     | enum ('REQUEST', 'PREFETCH', 'CACHE', 'RESPONSE')       |         |
 
+### Header
+
+[Fastly documentation](https://docs.fastly.com/api/config#header)
+
+| Field         | Required | Type                                                      | Default |
+|:--------------|:---------|:----------------------------------------------------------|:--------|
+| name          | true     | string                                                    |         |
+| action        | false    | enum ('set', 'append', 'delete', 'regex', 'regex_repeat') | set     |
+| dst           | true     | string                                                    |         |
+| ignore_if_set | false    | int (one of [0,1])                                        | 0       |
+| priority      | false    | int                                                       | 100     |
+| regex         | false    | string                                                    |         |
+| type          | true     | enum ('request', 'fetch', 'cache', 'response')            |         |
+| src           | true     | string                                                    |         |
+| substitution  | false    | string                                                    |         |
+
 ## Examples
 
 ### Using the fastly_service module in a Playbook
