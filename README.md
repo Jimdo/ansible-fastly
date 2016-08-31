@@ -10,6 +10,21 @@ Ansible module to configure services in Fastly
 $ ansible-galaxy install Jimdo.fastly
 ```
 
+## Documentation
+
+### Module options
+
+| Name                 | Required | Description                                                                                   | Default |
+|:---------------------|:---------|:----------------------------------------------------------------------------------------------|:--------|
+| name                 | true     | The unique name for the service to create                                                     |         |
+| fastly_api_key       | false    | Fastly API key. If not set then the value of the FASTLY_API_KEY environment variable is used. |         |
+| activate_new_version | false    | Configures whether newly created versions should be activated automatically                   | true    |
+| domains              | true     | List of domain names to serve as entry points for your service                                |         |
+| backends             | true     | List of backends to service requests from your domains                                        |         |
+| gzips                | false    | List of gzip configurations                                                                   |         |
+| headers              | false    | List of headers to manipulate for each request                                                |         |
+| response_objects     | false    | List of response objects                                                                      |         |
+
 ## Examples
 
 ### Using the fastly_service module in a Playbook
