@@ -129,6 +129,7 @@ class FastlyValidationError(RuntimeError):
 
 class FastlyObject(object):
     schema = {}
+    sort_key = None
 
     def to_json(self):
         return self.__dict__
@@ -179,6 +180,7 @@ class FastlyDomain(FastlyObject):
         'name': dict(required=True, type='str', default=None),
         'comment': dict(required=False, type='str', default='')
     }
+    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
@@ -191,6 +193,7 @@ class FastlyBackend(FastlyObject):
         'port': dict(required=False, type='int', default=80),
         'address': dict(required=True, type='str', default=None)
     }
+    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
@@ -207,6 +210,7 @@ class FastlyCondition(FastlyObject):
         'type': dict(required=True, type='str', default=None,
                      choices=['REQUEST', 'PREFETCH', 'CACHE', 'RESPONSE']),
     }
+    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
@@ -223,6 +227,7 @@ class FastlyGzip(FastlyObject):
         'content_types': dict(required=False, type='str', default=''),
         'extensions': dict(required=False, type='str', default=''),
     }
+    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
@@ -245,6 +250,7 @@ class FastlyHeader(FastlyObject):
         'src': dict(required=True, type='str', default=None),
         'substitution': dict(required=False, type='str', default='')
     }
+    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.action = self.read_config(config, validate_choices, 'action')
@@ -265,6 +271,7 @@ class FastlyResponseObject(FastlyObject):
         'response': dict(required=False, type='str', default='Ok'),
         'status': dict(required=False, type='intstr', default='200')
     }
+    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
@@ -307,12 +314,12 @@ class FastlySettings(object):
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
     def __eq__(self, other):
-        return self.domains == other.domains \
-               and self.backends == other.backends \
-               and self.conditions == other.conditions \
-               and self.gzips == other.gzips \
-               and self.headers == other.headers \
-               and self.response_objects == other.response_objects
+        return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
+               and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
+               and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
+               and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
+               and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
+               and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key)
 
     def __ne__(self, other):
         return not self.__eq__(other)
