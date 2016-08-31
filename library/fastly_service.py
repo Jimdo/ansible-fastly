@@ -233,25 +233,29 @@ class FastlyGzip(FastlyObject):
 
 class FastlyHeader(FastlyObject):
     schema = {
+        'name': dict(required=True, type='str', default=None),
         'action': dict(required=False, type='str', default='set',
                        choices=['set', 'append', 'delete', 'regex', 'regex_repeat']),
-        'name': dict(required=True, type='str', default=None),
         'dst': dict(required=True, type='str', default=None),
+        'ignore_if_set': dict(required=False, type='intstr', default='0'),
+        'priority': dict(required=False, type='intstr', default='100'),
+        'regex': dict(required=False, type='str', default=''),
         'type': dict(required=True, type='str', default=None,
                      choices=['request', 'fetch', 'cache', 'response']),
         'src': dict(required=True, type='str', default=None),
-        'ignore_if_set': dict(required=False, type='intstr', default='0'),
-        'priority': dict(required=False, type='intstr', default='100')
+        'substitution': dict(required=False, type='str', default='')
     }
 
     def __init__(self, config, validate_choices):
-        self.name = self.read_config(config, validate_choices, 'name')
-        self.dst = self.read_config(config, validate_choices, 'dst')
-        self.type = self.read_config(config, validate_choices, 'type')
         self.action = self.read_config(config, validate_choices, 'action')
-        self.src = self.read_config(config, validate_choices, 'src')
+        self.dst = self.read_config(config, validate_choices, 'dst')
         self.ignore_if_set = self.read_config(config, validate_choices, 'ignore_if_set')
+        self.name = self.read_config(config, validate_choices, 'name')
         self.priority = self.read_config(config, validate_choices, 'priority')
+        self.regex = self.read_config(config, validate_choices, 'regex')
+        self.type = self.read_config(config, validate_choices, 'type')
+        self.src = self.read_config(config, validate_choices, 'src')
+        self.substitution = self.read_config(config, validate_choices, 'substitution')
 
 
 class FastlyResponseObject(FastlyObject):
