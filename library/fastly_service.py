@@ -570,7 +570,7 @@ class FastlyServiceModule(object):
                 activate_new_version=dict(required=False, type='bool', default=True),
                 domains=dict(default=None, required=True, type='list'),
                 backends=dict(default=None, required=True, type='list'),
-                conditions=dict(default=None, required=True, type='list'),
+                conditions=dict(default=None, required=False, type='list'),
                 gzips=dict(default=None, required=False, type='list'),
                 headers=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
