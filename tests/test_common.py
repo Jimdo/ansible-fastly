@@ -37,7 +37,9 @@ class TestCommon(unittest.TestCase):
         }],
         'response_objects': [{
             'name': 'Set 200 status code',
-        }]
+        }],
+        'conditions': None,
+        'gzips': None,
     }
 
     @vcr.use_cassette()
