@@ -289,27 +289,27 @@ class FastlySettings(object):
         self.headers = []
         self.response_objects = []
 
-        if 'domains' in settings:
+        if 'domains' in settings and settings['domains'] is not None:
             for domain in settings['domains']:
                 self.domains.append(FastlyDomain(domain, validate_choices))
 
-        if 'backends' in settings:
+        if 'backends' in settings and settings['backends'] is not None:
             for backend in settings['backends']:
                 self.backends.append(FastlyBackend(backend, validate_choices))
 
-        if 'conditions' in settings:
+        if 'conditions' in settings and settings['conditions'] is not None:
             for condition in settings['conditions']:
                 self.conditions.append(FastlyCondition(condition, validate_choices))
 
-        if 'gzips' in settings:
+        if 'gzips' in settings and settings['gzips'] is not None:
             for gzip in settings['gzips']:
                 self.gzips.append(FastlyGzip(gzip, validate_choices))
 
-        if 'headers' in settings:
+        if 'headers' in settings and settings['headers'] is not None:
             for header in settings['headers']:
                 self.headers.append(FastlyHeader(header, validate_choices))
 
-        if 'response_objects' in settings:
+        if 'response_objects' in settings and settings['response_objects'] is not None:
             for response_object in settings['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
