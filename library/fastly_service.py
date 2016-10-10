@@ -46,6 +46,10 @@ options:
         required: false
         description:
             - List of response objects
+    vcls:
+        required: false
+        description:
+            - List of vcls
 '''
 
 EXAMPLES = '''
@@ -99,13 +103,35 @@ EXAMPLES = '''
       - name: Set 301 status code
         status: 301
         response: Moved Permanently
+
+# VCL example
+- fastly_service:
+    name: Example service
+    domains:
+      - name: test1.example.net
+        comment: test1
+    backends:
+      - name: Backend 1
+        port: 80
+        address: be1.example.net
+    vcls:
+      - name: main
+        main: true
+        content: |
+            sub vcl_hit {
+            #FASTLY hit
+             if (!obj.cacheable) {
+               return(pass);
+             }
+             return(deliver);
+            }
+
 '''
 
 import httplib
 import urllib
 
 from ansible.module_utils.basic import *
-from ansible.utils import template
 
 class FastlyResponse(object):
     def __init__(self, http_response):
@@ -284,7 +310,6 @@ class FastlyVCL(FastlyObject):
         'content': dict(required=False, type='str', default=''),
         'main': dict(required=False, type='bool', default=True),
         'name': dict(required=True, type='str', default=None),
-        'template_file': dict(required=False, type='str', default='')
     }
     sort_key = lambda f: f.name
 
@@ -292,11 +317,6 @@ class FastlyVCL(FastlyObject):
         self.content = self.read_config(config, validate_choices, 'content')
         self.main = self.read_config(config, validate_choices, 'main')
         self.name = self.read_config(config, validate_choices, 'name')
-        # TODO use template file
-        # check if we want to use a template instead
-        # template_file = self.read_config(config, validate_choices, 'template_file')
-        # if template is not None:
-        #     template.template(self.basedir, template_string, inject)
 
 class FastlySettings(object):
     def __init__(self, settings, validate_choices = True):
@@ -631,7 +651,7 @@ class FastlyServiceModule(object):
                 'conditions': self.module.params['conditions'],
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
-                'response_objects': self.module.params['response_objects']
+                'response_objects': self.module.params['response_objects'],
                 'vcls': self.module.params['vcls']
             })
         except FastlyValidationError as err:
