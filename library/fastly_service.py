@@ -130,6 +130,24 @@ EXAMPLES = '''
              return(deliver);
             }
 
+# S3 example
+- fastly_service:
+    name: Example service
+    domains:
+      - name: test1.example.net
+        comment: test1
+    backends:
+      - name: Backend 1
+        port: 80
+        address: be1.example.net
+    s3s:
+      - name: s3-bucket-logger
+        access_key: iam-key
+        secret_key: iam-secret
+        bucket_name: s3-bucket
+        path: /my-app/
+        period: 3600
+
 '''
 
 import httplib
@@ -337,12 +355,13 @@ class FastlyS3(FastlyObject):
         'gzip_level': dict(required=False, type='intstr', default='0'),
         'redundancy': dict(required=False, type='str', default='standard',
                         choices=['standard','reduced_redundancy']),
-        'response_condition': dict(required=False, type='str', default=''),
+        'response_condition': dict(required=False, type='str', default=None),
         # adv settings not in gui
-        'server_side_encryption_kms_key_id': dict(required=False, type='str', default=''),
+        'server_side_encryption': dict(required=False, type='str', default=None,
+                        choices=[None, 'AES256', 'aws:kms']),
         'message_type': dict(required=False, type='str', default='classic',
                        choices=['classic', 'loggly', 'logplex', 'blank']),
-        'server_side_encryption': dict(required=False, type='str', default=''),
+        'server_side_encryption_kms_key_id': dict(required=False, type='str', default=''),
         'timestamp_format': dict(required=False, type='str', default=''),
         # in json response but not in documentation or gui
         'public_key': dict(required=False, type='str', default=''),
@@ -418,7 +437,7 @@ class FastlySettings(object):
                and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
                and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
                and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
-               and sorted(self.vcls, key=FastlyVCL.sort_key) == sorted(other.vcls, key=FastlyVCL.sort_key)
+               and sorted(self.vcls, key=FastlyVCL.sort_key) == sorted(other.vcls, key=FastlyVCL.sort_key) \
                and sorted(self.s3s, key=FastlyS3.sort_key) == sorted(other.s3s, key=FastlyS3.sort_key)
 
     def __ne__(self, other):
