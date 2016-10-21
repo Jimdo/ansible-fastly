@@ -25,6 +25,8 @@ $ ansible-galaxy install Jimdo.fastly
 | gzips                | false    | List of gzip configurations                                                                   |         |
 | headers              | false    | List of headers to manipulate for each request                                                |         |
 | response_objects     | false    | List of response objects                                                                      |         |
+| vcls                 | false    | List of VCLs
+| s3s                  | false    | List of S3 log entries
 
 ### Condition
 
@@ -65,6 +67,39 @@ $ ansible-galaxy install Jimdo.fastly
 | response          | false    | string                                                    | Ok      |
 | status            | false    | int                                                       | 200     |
 
+### VCL
+
+[Fastly documentation](https://docs.fastly.com/api/config#vcl)
+
+| Field             | Required | Type                                                      | Default |
+|:------------------|:---------|:----------------------------------------------------------|:--------|
+| name              | true     | string                                                    |         |
+| content           | true     | string                                                    |         |
+| main              | false    | bool                                                      | true    |
+
+### S3 log entries
+
+[Fastly documentation](https://docs-next.fastly.com/api/logging#logging_s3)
+
+| Field                             | Required | Type                                            | Default            |
+|:----------------------------------|:---------|:------------------------------------------------|:-------------------|
+| name                              | true     | str                                             |                    |
+| format                            | false    | str                                             | %h %l %u %t %r %>s |
+| format_version                    | false    | intstr                                          | 1                  |
+| bucket_name                       | true     | str                                             |                    |
+| access_key                        | true     | str                                             |                    |
+| secret_key                        | true     | str                                             |                    |
+| period                            | false    | intstr                                          | 3600               |
+| path                              | false    | str                                             |                    |
+| domain                            | false    | str                                             |                    |
+| gzip_level                        | false    | intstr                                          | 0                  |
+| redundancy                        | false    | enum('standard','reduced_redundancy')           | standard           |
+| response_condition                | false    | str                                             |                    |
+| server_side_encryption            | false    | enum(None, 'AES256', 'aws:kms')                 |                    |
+| message_type                      | false    | enum('classic', 'loggly', 'logplex', 'blank')   | classic            |
+| server_side_encryption_kms_key_id | false    | str                                             |                    |
+| timestamp_format                  | false    | str                                             |                    |
+
 ## Examples
 
 ### Using the fastly_service module in a Playbook
@@ -97,6 +132,25 @@ $ ansible-galaxy install Jimdo.fastly
         response_objects:
           - name: Set 301 status code
             status: 301
+        vcls:
+          - name: main
+            main: true
+            content: |
+                sub vcl_hit {
+                #FASTLY hit
+                 if (!obj.cacheable) {
+                   return(pass);
+                 }
+                 return(deliver);
+                }
+        s3s:
+          - name: s3-bucket-logger
+            access_key: iam-key
+            secret_key: iam-secret
+            bucket_name: s3-bucket
+            path: /my-app/
+            period: 3600
+
 ```
 
 ``` bash
