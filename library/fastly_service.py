@@ -50,6 +50,10 @@ options:
         required: false
         description:
             - List of vcls
+    s3s:
+        required: false
+        description:
+            - List of s3s
 '''
 
 EXAMPLES = '''
@@ -318,6 +322,52 @@ class FastlyVCL(FastlyObject):
         self.main = self.read_config(config, validate_choices, 'main')
         self.name = self.read_config(config, validate_choices, 'name')
 
+class FastlyS3(FastlyObject):
+    # see https://docs-next.fastly.com/api/logging#logging_s3
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'format': dict(required=False, type='str', default='%h %l %u %t %r %>s'),
+        'format_version': dict(required=False, type='intstr', default='1'),
+        'bucket_name': dict(required=True, type='str', default=None),
+        'access_key': dict(required=True, type='str', default=None),
+        'secret_key': dict(required=True, type='str', default=None),
+        'period': dict(required=False, type='intstr', default='3600'),
+        'path': dict(required=False, type='str', default=''),
+        'domain': dict(required=False, type='str', default=''),
+        'gzip_level': dict(required=False, type='intstr', default='0'),
+        'redundancy': dict(required=False, type='str', default='standard',
+                        choices=['standard','reduced_redundancy']),
+        'response_condition': dict(required=False, type='str', default=''),
+        # adv settings not in gui
+        'server_side_encryption_kms_key_id': dict(required=False, type='str', default=''),
+        'message_type': dict(required=False, type='str', default='classic',
+                       choices=['classic', 'loggly', 'logplex', 'blank']),
+        'server_side_encryption': dict(required=False, type='str', default=''),
+        'timestamp_format': dict(required=False, type='str', default=''),
+        # in json response but not in documentation or gui
+        'public_key': dict(required=False, type='str', default=''),
+    }
+    sort_key = lambda f: f.name
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.format = self.read_config(config, validate_choices, 'format')
+        self.format_version = self.read_config(config, validate_choices, 'format_version')
+        self.bucket_name = self.read_config(config, validate_choices, 'bucket_name')
+        self.access_key = self.read_config(config, validate_choices, 'access_key')
+        self.secret_key = self.read_config(config, validate_choices, 'secret_key')
+        self.period = self.read_config(config, validate_choices, 'period')
+        self.path = self.read_config(config, validate_choices, 'path')
+        self.domain = self.read_config(config, validate_choices, 'domain')
+        self.gzip_level = self.read_config(config, validate_choices, 'gzip_level')
+        self.redundancy = self.read_config(config, validate_choices, 'redundancy')
+        self.response_condition = self.read_config(config, validate_choices, 'response_condition')
+        self.server_side_encryption_kms_key_id = self.read_config(config, validate_choices, 'server_side_encryption_kms_key_id')
+        self.message_type = self.read_config(config, validate_choices, 'message_type')
+        self.server_side_encryption = self.read_config(config, validate_choices, 'server_side_encryption')
+        self.timestamp_format = self.read_config(config, validate_choices, 'timestamp_format')
+        self.public_key = self.read_config(config, validate_choices, 'public_key')
+
 class FastlySettings(object):
     def __init__(self, settings, validate_choices = True):
         self.domains = []
@@ -327,6 +377,7 @@ class FastlySettings(object):
         self.headers = []
         self.response_objects = []
         self.vcls = []
+        self.s3s = []
 
         if 'domains' in settings and settings['domains'] is not None:
             for domain in settings['domains']:
@@ -356,6 +407,10 @@ class FastlySettings(object):
             for vcl in settings['vcls']:
                 self.vcls.append(FastlyVCL(vcl, validate_choices))
 
+        if 's3s' in settings and settings['s3s'] is not None:
+            for s3 in settings['s3s']:
+                self.s3s.append(FastlyS3(s3, validate_choices))
+
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
                and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
@@ -364,6 +419,7 @@ class FastlySettings(object):
                and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
                and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
                and sorted(self.vcls, key=FastlyVCL.sort_key) == sorted(other.vcls, key=FastlyVCL.sort_key)
+               and sorted(self.s3s, key=FastlyS3.sort_key) == sorted(other.s3s, key=FastlyS3.sort_key)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -533,6 +589,14 @@ class FastlyClient(object):
             raise Exception("Error creating vcl for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_s3(self, service_id, version, s3):
+        response = self._request('/service/%s/version/%s/logging/s3' % (service_id, version), 'POST', s3)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating s3 for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
 
 class FastlyStateEnforcerResult(object):
     def __init__(self, changed, actions, service):
@@ -596,6 +660,9 @@ class FastlyStateEnforcer(object):
         for vcl in settings.vcls:
             self.client.create_vcl(service_id, version_number, vcl)
 
+        for s3 in settings.s3s:
+            self.client.create_s3(service_id, version_number, s3)
+
         if activate_version:
             self.client.activate_version(service_id, version_number)
 
@@ -630,6 +697,7 @@ class FastlyServiceModule(object):
                 headers=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
                 vcls=dict(default=None, required=False, type='list'),
+                s3s=dict(default=None, required=False, type='list'),
             ),
             supports_check_mode=False
         )
@@ -652,7 +720,8 @@ class FastlyServiceModule(object):
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
                 'response_objects': self.module.params['response_objects'],
-                'vcls': self.module.params['vcls']
+                'vcls': self.module.params['vcls'],
+                's3s': self.module.params['s3s'],
             })
         except FastlyValidationError as err:
             self.module.fail_json(msg='Error in ' + err.cls + ': ' + err.message)
