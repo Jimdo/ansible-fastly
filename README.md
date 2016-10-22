@@ -40,6 +40,36 @@ $ ansible-galaxy install Jimdo.fastly
 | statement | true     | string                                                  |         |
 | type      | true     | enum ('REQUEST', 'PREFETCH', 'CACHE', 'RESPONSE')       |         |
 
+### Backends
+
+[Fastly documentation](https://docs.fastly.com/api/config#backend)
+
+| Field                 | Required | Type                                                    | Default |
+|:----------------------|:---------|:--------------------------------------------------------|:--------|
+| name                  | true     | string                                                  |         |
+| port                  | false    | integer                                                 | 80      |
+| address               | true     | string                                                  |         |
+| comment               | false    | string                                                  |         |
+| shield                | false    | string                                                  |         |
+| max_conn              | false    | integer                                                 | 200     |
+| error_threshold       | false    | integer                                                 | 0       |
+| connect_timeout       | false    | integer                                                 | 1000    |
+| first_byte_timeout    | false    | integer                                                 | 15000   |
+| between_bytes_timeout | false    | integer                                                 | 10000   |
+| request_condition     | false    | string                                                  |         |
+| auto_loadbalance      | false    | bool                                                    | false   |
+| weight                | false    | integer                                                 | 0       |
+| ssl_hostname          | false    | string                                                  |         |
+| ssl_check_cert        | false    | bool                                                    | true    |
+| ssl_cert_hostname     | false    | string                                                  |         |
+| ssl_ca_cert           | false    | string                                                  |         |
+| min_tls_version       | false    | string                                                  |         |
+| max_tls_version       | false    | string                                                  |         |
+| ssl_ciphers           | false    | string                                                  |         |
+| ssl_sni_hostname      | false    | string                                                  |         |
+| ssl_client_cert       | false    | string                                                  |         |
+| ssl_client_key        | false    | string                                                  |         |
+
 ### Header
 
 [Fastly documentation](https://docs.fastly.com/api/config#header)

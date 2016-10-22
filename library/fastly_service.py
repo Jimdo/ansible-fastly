@@ -239,7 +239,35 @@ class FastlyBackend(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'port': dict(required=False, type='int', default=80),
-        'address': dict(required=True, type='str', default=None)
+        'address': dict(required=True, type='str', default=None),
+        'comment': dict(required=False, type='str', default=''),
+        'shield': dict(required=False, type='str', default=None), # TODO get list of POPs
+        # 'healthcheck': dict(required=False, type='str', default=None), # TODO implement healtchecks
+        # adv options
+        'max_conn': dict(required=False, type='intstr', default=200),
+        'error_threshold': dict(required=False, type='intstr', default=0),
+        # timeouts
+        'connect_timeout': dict(required=False, type='intstr', default=1000),
+        'first_byte_timeout': dict(required=False, type='intstr', default=15000),
+        'between_bytes_timeout': dict(required=False, type='intstr', default=10000),
+        # misc
+        'request_condition': dict(required=False, type='str', default=''),
+        'auto_loadbalance': dict(required=False, type='bool', default=False),
+        'weight': dict(required=False, type='int', default=0),
+        # ssl options
+        'ssl_hostname': dict(required=False, type='str', default=None),
+        'ssl_check_cert': dict(required=False, type='bool', default=True),
+        'ssl_cert_hostname': dict(required=False, type='str', default=None),
+        'ssl_ca_cert': dict(required=False, type='str', default=None),
+        # ssl adv options
+        'min_tls_version': dict(required=False, type='str', default=None,
+                            choices=[None, '1.0', '1.1', '1.2']),
+        'max_tls_version': dict(required=False, type='str', default=None,
+                            choices=[None, '1.2']),
+        'ssl_ciphers': dict(required=False, type='str', default=None),
+        'ssl_sni_hostname': dict(required=False, type='str', default=None),
+        'ssl_client_cert': dict(required=False, type='str', default=None),
+        'ssl_client_key': dict(required=False, type='str', default=None),
     }
     sort_key = lambda f: f.name
 
@@ -247,7 +275,28 @@ class FastlyBackend(FastlyObject):
         self.name = self.read_config(config, validate_choices, 'name')
         self.port = self.read_config(config, validate_choices, 'port')
         self.address = self.read_config(config, validate_choices, 'address')
-
+        self.comment = self.read_config(config, validate_choices, 'comment')
+        self.shield = self.read_config(config, validate_choices, 'shield')
+        self.max_conn = self.read_config(config, validate_choices, 'max_conn')
+        self.error_threshold = self.read_config(config, validate_choices, 'error_threshold')
+        self.connect_timeout = self.read_config(config, validate_choices, 'connect_timeout')
+        self.first_byte_timeout = self.read_config(config, validate_choices, 'first_byte_timeout')
+        self.between_bytes_timeout = self.read_config(config, validate_choices, 'between_bytes_timeout')
+        self.request_condition = self.read_config(config, validate_choices, 'request_condition')
+        self.auto_loadbalance = self.read_config(config, validate_choices, 'auto_loadbalance')
+        self.weight = self.read_config(config, validate_choices, 'weight')
+        self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
+        self.ssl_check_cert = self.read_config(config, validate_choices, 'ssl_check_cert')
+        if self.ssl_hostname is None:
+            self.ssl_hostname = self.address
+        self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
+        self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
+        self.min_tls_version = self.read_config(config, validate_choices, 'min_tls_version')
+        self.max_tls_version = self.read_config(config, validate_choices, 'max_tls_version')
+        self.ssl_ciphers = self.read_config(config, validate_choices, 'ssl_ciphers')
+        self.ssl_sni_hostname = self.read_config(config, validate_choices, 'ssl_sni_hostname')
+        self.ssl_client_cert = self.read_config(config, validate_choices, 'ssl_client_cert')
+        self.ssl_client_key = self.read_config(config, validate_choices, 'ssl_client_key')
 
 class FastlyCondition(FastlyObject):
     schema = {
@@ -661,11 +710,11 @@ class FastlyStateEnforcer(object):
         for domain in settings.domains:
             self.client.create_domain(service_id, version_number, domain)
 
-        for backend in settings.backends:
-            self.client.create_backend(service_id, version_number, backend)
-
         for condition in settings.conditions:
             self.client.create_condition(service_id, version_number, condition)
+
+        for backend in settings.backends:
+            self.client.create_backend(service_id, version_number, backend)
 
         for gzip in settings.gzips:
             self.client.create_gzip(service_id, version_number, gzip)
