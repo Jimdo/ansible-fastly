@@ -404,7 +404,7 @@ class FastlyS3(FastlyObject):
         'gzip_level': dict(required=False, type='intstr', default='0'),
         'redundancy': dict(required=False, type='str', default='standard',
                         choices=['standard','reduced_redundancy']),
-        'response_condition': dict(required=False, type='str', default=None),
+        'response_condition': dict(required=False, type='str', default=''),
         # adv settings not in gui
         'server_side_encryption': dict(required=False, type='str', default=None,
                         choices=[None, 'AES256', 'aws:kms']),
@@ -658,6 +658,8 @@ class FastlyClient(object):
                 service_id, version, response.payload['detail']))
 
     def create_s3(self, service_id, version, s3):
+        if s3.response_condition == '':
+            s3.response_condition = None;
         response = self._request('/service/%s/version/%s/logging/s3' % (service_id, version), 'POST', s3)
         if response.status == 200:
             return response.payload
