@@ -54,6 +54,14 @@ options:
         required: false
         description:
             - List of s3s
+    scalyrs:
+        required: false
+        description:
+            - List of scalyrs
+    request_settings:
+        required: false
+        description:
+            - List of request settings
 '''
 
 EXAMPLES = '''
@@ -148,6 +156,21 @@ EXAMPLES = '''
         path: /my-app/
         period: 3600
 
+
+# request_settings example
+- fastly_service:
+    name: Example service
+    domains:
+      - name: test1.example.net
+        comment: test1
+    backends:
+      - name: Backend 1
+        port: 80
+        address: be1.example.net
+    request_settings:
+      - name: default
+        force_ssl: 1
+        xff: append_all
 '''
 
 import httplib
@@ -204,7 +227,7 @@ class FastlyObject(object):
             value = unicode(value)
         elif param_type == 'intstr':
             try:
-                value = unicode(int(value))
+                    value = unicode(int(value))
             except ValueError:
                 raise FastlyValidationError(self.__class__.__name__,
                                             "Field '%s' with value '%s' couldn't be converted to integer" % (
@@ -360,7 +383,6 @@ class FastlyHeader(FastlyObject):
         self.src = self.read_config(config, validate_choices, 'src')
         self.substitution = self.read_config(config, validate_choices, 'substitution')
 
-
 class FastlyResponseObject(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
@@ -436,6 +458,60 @@ class FastlyS3(FastlyObject):
         self.timestamp_format = self.read_config(config, validate_choices, 'timestamp_format')
         self.public_key = self.read_config(config, validate_choices, 'public_key')
 
+class FastlyScalyr(FastlyObject):
+    # see https://docs-next.fastly.com/api/logging#logging_scalyr
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'format': dict(required=False, type='str', default='%h %l %u %t %r %>s'),
+        # 'format_version': dict(required=False, type='intstr', default='1'),
+        'token': dict(required=True, type='str', default=None),
+        'response_condition': dict(required=False, type='str', default=''),
+    }
+    sort_key = lambda f: f.name
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.format = self.read_config(config, validate_choices, 'format')
+        # self.format_version = self.read_config(config, validate_choices, 'format_version')
+        self.token = self.read_config(config, validate_choices, 'token')
+        self.response_condition = self.read_config(config, validate_choices, 'response_condition')
+
+class FastlyRequestSetting(FastlyObject):
+    schema = {
+        # basic
+        'name': dict(required=True, type='str', default=None),
+        'action': dict(required=False, type='str', default=None),
+        'force_ssl': dict(required=False, type='intstr', default='0'),
+        'xff': dict(required=False, type='str', default='leave',
+                        choices=['clear', 'leave', 'append', 'append_all', 'overwrite']),
+        # advanced
+        'default_host': dict(required=False, type='str', default=None),
+        'timer_support': dict(required=False, type='str', default=None),
+        'max_stale_age': dict(required=False, type='str', default=None),
+        'force_miss': dict(required=False, type='str', default=None),
+        'bypass_busy_wait': dict(required=False, type='str', default=None),
+        'hash_keys': dict(required=False, type='str', default=None),
+        # condition
+        'request_condition': dict(required=False, type='str', default='')
+    }
+    sort_key = lambda f: f.name
+
+    def __init__(self, config, validate_choices):
+        # basic
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.action = self.read_config(config, validate_choices, 'action')
+        self.force_ssl = self.read_config(config, validate_choices, 'force_ssl')
+        self.xff = self.read_config(config, validate_choices, 'xff')
+        # advanced
+        self.default_host = self.read_config(config, validate_choices, 'default_host')
+        self.timer_support = self.read_config(config, validate_choices, 'timer_support')
+        self.max_stale_age = self.read_config(config, validate_choices, 'max_stale_age')
+        self.force_miss = self.read_config(config, validate_choices, 'force_miss')
+        self.bypass_busy_wait = self.read_config(config, validate_choices, 'bypass_busy_wait')
+        self.hash_keys = self.read_config(config, validate_choices, 'hash_keys')
+        # condition
+        self.request_condition = self.read_config(config, validate_choices, 'request_condition')
+
 class FastlySettings(object):
     def __init__(self, settings, validate_choices = True):
         self.domains = []
@@ -446,6 +522,8 @@ class FastlySettings(object):
         self.response_objects = []
         self.vcls = []
         self.s3s = []
+        self.scalyrs = []
+        self.request_settings = []
 
         if 'domains' in settings and settings['domains'] is not None:
             for domain in settings['domains']:
@@ -479,6 +557,14 @@ class FastlySettings(object):
             for s3 in settings['s3s']:
                 self.s3s.append(FastlyS3(s3, validate_choices))
 
+        if 'scalyrs' in settings and settings['scalyrs'] is not None:
+            for scalyr in settings['scalyrs']:
+                self.scalyrs.append(FastlyScalyr(scalyr, validate_choices))
+
+        if 'request_settings' in settings and settings['request_settings'] is not None:
+            for request_setting in settings['request_settings']:
+                self.request_settings.append(FastlyRequestSetting(request_setting, validate_choices))
+
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
                and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
@@ -487,7 +573,9 @@ class FastlySettings(object):
                and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
                and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
                and sorted(self.vcls, key=FastlyVCL.sort_key) == sorted(other.vcls, key=FastlyVCL.sort_key) \
-               and sorted(self.s3s, key=FastlyS3.sort_key) == sorted(other.s3s, key=FastlyS3.sort_key)
+               and sorted(self.s3s, key=FastlyS3.sort_key) == sorted(other.s3s, key=FastlyS3.sort_key) \
+               and sorted(self.scalyrs, key=FastlyScalyr.sort_key) == sorted(other.scalyrs, key=FastlyScalyr.sort_key) \
+               and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -667,6 +755,26 @@ class FastlyClient(object):
             raise Exception("Error creating s3 for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_scalyr(self, service_id, version, scalyr):
+        if scalyr.response_condition == '':
+            scalyr.response_condition = None;
+        response = self._request('/service/%s/version/%s/logging/scalyr' % (service_id, version), 'POST', scalyr)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating scalyr for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
+    def create_request_setting(self, service_id, version, request_setting):
+        if request_setting.request_condition == '':
+            request_setting.request_condition = None;
+        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'POST', request_setting)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating request_setting for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
 
 class FastlyStateEnforcerResult(object):
     def __init__(self, changed, actions, service):
@@ -733,6 +841,12 @@ class FastlyStateEnforcer(object):
         for s3 in settings.s3s:
             self.client.create_s3(service_id, version_number, s3)
 
+        for scalyr in settings.scalyrs:
+            self.client.create_scalyr(service_id, version_number, scalyr)
+
+        for request_setting in settings.request_settings:
+            self.client.create_request_setting(service_id, version_number, request_setting)
+
         if activate_version:
             self.client.activate_version(service_id, version_number)
 
@@ -768,6 +882,8 @@ class FastlyServiceModule(object):
                 response_objects=dict(default=None, required=False, type='list'),
                 vcls=dict(default=None, required=False, type='list'),
                 s3s=dict(default=None, required=False, type='list'),
+                scalyrs=dict(default=None, required=False, type='list'),
+                request_settings=dict(default=None, required=False, type='list'),
             ),
             supports_check_mode=False
         )
@@ -792,6 +908,8 @@ class FastlyServiceModule(object):
                 'response_objects': self.module.params['response_objects'],
                 'vcls': self.module.params['vcls'],
                 's3s': self.module.params['s3s'],
+                'scalyrs': self.module.params['scalyrs'],
+                'request_settings': self.module.params['request_settings'],
             })
         except FastlyValidationError as err:
             self.module.fail_json(msg='Error in ' + err.cls + ': ' + err.message)

@@ -97,6 +97,24 @@ $ ansible-galaxy install Jimdo.fastly
 | response          | false    | string                                                    | Ok      |
 | status            | false    | int                                                       | 200     |
 
+### Request Settings
+
+[Fastly documentation](https://docs.fastly.com/api/config#request_settings)
+
+| Field             | Required | Type                                                        | Default |
+|:------------------|:---------|:------------------------------------------------------------|:--------|
+| name              | true     | string                                                      |         |
+| request_condition | false    | string                                                      |         |
+| action            | false    | string                                                      |         |
+| force_ssl         | false    | int                                                         | 0       |
+| xff               | false    | enum('clear', 'leave', 'append', 'append_all', 'overwrite') | leave   |
+| default_host      | false    | string                                                      |         |
+| timer_support     | false    | string                                                      |         |
+| max_stale_age     | false    | string                                                      |         |
+| force_miss        | false    | string                                                      |         |
+| bypass_busy_wait  | false    | string                                                      |         |
+| hash_keys         | false    | string                                                      |         |
+
 ### VCL
 
 [Fastly documentation](https://docs.fastly.com/api/config#vcl)
