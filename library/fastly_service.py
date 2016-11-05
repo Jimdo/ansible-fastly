@@ -276,7 +276,7 @@ class FastlyBackend(FastlyObject):
         # misc
         'request_condition': dict(required=False, type='str', default=''),
         'auto_loadbalance': dict(required=False, type='bool', default=False),
-        'weight': dict(required=False, type='int', default=0),
+        'weight': dict(required=False, type='int', default=100),
         # ssl options
         'ssl_hostname': dict(required=False, type='str', default=None),
         'ssl_check_cert': dict(required=False, type='bool', default=True),
