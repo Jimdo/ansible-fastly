@@ -204,3 +204,18 @@ $ ansible-galaxy install Jimdo.fastly
 ``` bash
 $ ansible-playbook -i localhost, fastly.yml
 ```
+
+## Testing
+
+Requires vcrpy, wraps
+
+  - Set `FASTLY_API_KEY` to the Fastly key for your account.  You will need a valid Fastly account to generate the cassettes for new tests.  
+  - Change the `address` of the `localhost` backend to a valid address in `test_common.py`, will not work with `127.0.0.1`.  
+  - Run the tests, the existing tests that are based on `127.0.0.1` will report errors, that's fine.  
+  - Once you have a cassette for your tests, replace all instances of the address back to `127.0.0.1`, including the one in `test_common.py`.  
+  - Re-run the tests and they should all pass now
+
+To run all the tests
+``` bash
+$ python -m unittest discover tests
+```
