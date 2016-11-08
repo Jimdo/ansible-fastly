@@ -175,6 +175,7 @@ EXAMPLES = '''
 
 import httplib
 import urllib
+import copy
 
 from ansible.module_utils.basic import *
 
@@ -746,9 +747,10 @@ class FastlyClient(object):
                 service_id, version, response.payload['detail']))
 
     def create_s3(self, service_id, version, s3):
-        if s3.response_condition == '':
-            s3.response_condition = None;
-        response = self._request('/service/%s/version/%s/logging/s3' % (service_id, version), 'POST', s3)
+        s3_to_post = copy.deepcopy(s3)
+        if s3_to_post.response_condition == '':
+            s3_to_post.response_condition = None;
+        response = self._request('/service/%s/version/%s/logging/s3' % (service_id, version), 'POST', s3_to_post)
         if response.status == 200:
             return response.payload
         else:
@@ -756,9 +758,10 @@ class FastlyClient(object):
                 service_id, version, response.payload['detail']))
 
     def create_scalyr(self, service_id, version, scalyr):
-        if scalyr.response_condition == '':
-            scalyr.response_condition = None;
-        response = self._request('/service/%s/version/%s/logging/scalyr' % (service_id, version), 'POST', scalyr)
+        scalyr_to_post = copy.deepcopy(scalyr)
+        if scalyr_to_post.response_condition == '':
+            scalyr_to_post.response_condition = None;
+        response = self._request('/service/%s/version/%s/logging/scalyr' % (service_id, version), 'POST', scalyr_to_post)
         if response.status == 200:
             return response.payload
         else:
@@ -766,9 +769,10 @@ class FastlyClient(object):
                 service_id, version, response.payload['detail']))
 
     def create_request_setting(self, service_id, version, request_setting):
-        if request_setting.request_condition == '':
-            request_setting.request_condition = None;
-        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'POST', request_setting)
+        request_setting_to_post = copy.deepcopy(request_setting)
+        if request_setting_to_post.request_condition == '':
+            request_setting_to_post.request_condition = None;
+        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'POST', request_setting_to_post)
         if response.status == 200:
             return response.payload
         else:
