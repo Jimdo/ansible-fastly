@@ -265,7 +265,13 @@ class FastlyBackend(FastlyObject):
         'port': dict(required=False, type='int', default=80),
         'address': dict(required=True, type='str', default=None),
         'comment': dict(required=False, type='str', default=''),
-        'shield': dict(required=False, type='str', default=None), # TODO get list of POPs
+        'shield': dict(required=False, type='str', default=None,
+                    choices=[None,'amsterdam-nl','iad-va-us','atl-ga-us','auckland-akl',
+                      'brisbane-au','bos-ma-us','ord-il-us','dallas-tx-us','den-co-us',
+                      'fjr-ae','frankfurt-de','hongkong-hk','london_city-uk','lax-ca-us',
+                      'yyz-on-ca','melbourne-au','miami-fl-us','jfk-ny-us','osaka-jp',
+                      'cdg-par-fr','perth-au','sjc-ca-us','sea-wa-us','singapore-sg',
+                      'stockholm-bma','sydney-au','tokyo-jp2','wellington-wlg','gru-br-sa']),
         # 'healthcheck': dict(required=False, type='str', default=None), # TODO implement healtchecks
         # adv options
         'max_conn': dict(required=False, type='intstr', default=200),
