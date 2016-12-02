@@ -168,6 +168,13 @@ class FastlyObject(object):
                 raise FastlyValidationError(self.__class__.__name__,
                                             "Field '%s' with value '%s' couldn't be converted to integer" % (
                                             param_name, value))
+        elif param_type == 'bool':
+            try:
+                value = bool(value)
+            except ValueError:
+                raise FastlyValidationError(self.__class__.__name__,
+                                            "Field '%s' with value '%s' couldn't be converted to boolean" % (
+                                                param_name, value))
 
         return value
 
@@ -191,7 +198,8 @@ class FastlyBackend(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'port': dict(required=False, type='int', default=80),
-        'address': dict(required=True, type='str', default=None)
+        'address': dict(required=True, type='str', default=None),
+        'ssl_hostname': dict(required=False, type='str', default=None)
     }
     sort_key = lambda f: f.name
 
@@ -199,6 +207,7 @@ class FastlyBackend(FastlyObject):
         self.name = self.read_config(config, validate_choices, 'name')
         self.port = self.read_config(config, validate_choices, 'port')
         self.address = self.read_config(config, validate_choices, 'address')
+        self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
 
 
 class FastlyCondition(FastlyObject):
