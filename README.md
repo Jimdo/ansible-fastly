@@ -54,17 +54,19 @@ $ ansible-galaxy install Jimdo.fastly
 
 [Fastly documentation](https://docs.fastly.com/api/config#header)
 
-| Field         | Required | Type                                                      | Default |
-|:--------------|:---------|:----------------------------------------------------------|:--------|
-| name          | true     | string                                                    |         |
-| action        | false    | enum ('set', 'append', 'delete', 'regex', 'regex_repeat') | set     |
-| dst           | true     | string                                                    |         |
-| ignore_if_set | false    | int (one of [0,1])                                        | 0       |
-| priority      | false    | int                                                       | 100     |
-| regex         | false    | string                                                    |         |
-| type          | true     | enum ('request', 'fetch', 'cache', 'response')            |         |
-| src           | true     | string                                                    |         |
-| substitution  | false    | string                                                    |         |
+| Field              | Required | Type                                                      | Default |
+|:-------------------|:---------|:----------------------------------------------------------|:--------|
+| name               | true     | string                                                    |         |
+| action             | false    | enum ('set', 'append', 'delete', 'regex', 'regex_repeat') | set     |
+| dst                | true     | string                                                    |         |
+| ignore_if_set      | false    | integer (one of [0,1])                                    | 0       |
+| priority           | false    | integer                                                   | 100     |
+| regex              | false    | string                                                    |         |
+| request_condition  | false    | string                                                    |         |
+| response_condition | false    | string                                                    |         | 
+| src                | true     | string                                                    |         |
+| substitution       | false    | string                                                    |         |
+| type               | true     | enum ('request', 'fetch', 'cache', 'response')            |         |
 
 ### Response Object
 
@@ -75,7 +77,7 @@ $ ansible-galaxy install Jimdo.fastly
 | name              | true     | string                                                    |         |
 | request_condition | false    | string                                                    |         |
 | response          | false    | string                                                    | Ok      |
-| status            | false    | int                                                       | 200     |
+| status            | false    | integer                                                   | 200     |
 
 ## Examples
 
