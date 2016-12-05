@@ -260,10 +260,12 @@ class FastlyHeader(FastlyObject):
         'ignore_if_set': dict(required=False, type='intstr', default='0'),
         'priority': dict(required=False, type='intstr', default='100'),
         'regex': dict(required=False, type='str', default=''),
-        'type': dict(required=True, type='str', default=None,
-                     choices=['request', 'fetch', 'cache', 'response']),
+        'request_condition': dict(required=False, type='str', default=None),
+        'response_condition': dict(required=False, type='str', default=None),
         'src': dict(required=True, type='str', default=None),
-        'substitution': dict(required=False, type='str', default='')
+        'substitution': dict(required=False, type='str', default=''),
+        'type': dict(required=True, type='str', default=None,
+                     choices=['request', 'fetch', 'cache', 'response'])
     }
     sort_key = lambda f: f.name
 
@@ -274,9 +276,11 @@ class FastlyHeader(FastlyObject):
         self.name = self.read_config(config, validate_choices, 'name')
         self.priority = self.read_config(config, validate_choices, 'priority')
         self.regex = self.read_config(config, validate_choices, 'regex')
-        self.type = self.read_config(config, validate_choices, 'type')
+        self.request_condition = self.read_config(config, validate_choices, 'request_condition')
+        self.response_condition = self.read_config(config, validate_choices, 'response_condition')
         self.src = self.read_config(config, validate_choices, 'src')
         self.substitution = self.read_config(config, validate_choices, 'substitution')
+        self.type = self.read_config(config, validate_choices, 'type')
 
 
 class FastlyResponseObject(FastlyObject):
