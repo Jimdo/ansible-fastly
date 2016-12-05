@@ -164,7 +164,7 @@ class FastlyObject(object):
                                             param_name, value))
         elif param_type == 'int':
             try:
-                value = int(value)
+                value = int(value) if value is not None else default
             except ValueError:
                 raise FastlyValidationError(self.__class__.__name__,
                                             "Field '%s' with value '%s' couldn't be converted to integer" % (
@@ -214,6 +214,22 @@ class FastlyBackend(FastlyObject):
         self.address = self.read_config(config, validate_choices, 'address')
         self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
         self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
+
+
+class FastlyCacheSettings(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str'),
+        'action': dict(required=False, type='str', default=None, choices=['cache', 'pass', 'restart', None]),
+        'cache_condition': dict(required=False, type='str', default=''),
+        'stale_ttl': dict(required=False, type='int', default=0)
+    }
+    sort_key = lambda f: f.name
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.action = self.read_config(config, validate_choices, 'action')
+        self.cache_condition = self.read_config(config, validate_choices, 'cache_condition')
+        self.stale_ttl = self.read_config(config, validate_choices, 'stale_ttl')
 
 
 class FastlyCondition(FastlyObject):
@@ -303,6 +319,7 @@ class FastlySettings(object):
     def __init__(self, settings, validate_choices = True):
         self.domains = []
         self.backends = []
+        self.cache_settings = []
         self.conditions = []
         self.gzips = []
         self.headers = []
@@ -315,6 +332,10 @@ class FastlySettings(object):
         if 'backends' in settings and settings['backends'] is not None:
             for backend in settings['backends']:
                 self.backends.append(FastlyBackend(backend, validate_choices))
+
+        if 'cache_settings' in settings and settings['cache_settings'] is not None:
+            for cache_settings in settings['cache_settings']:
+                self.cache_settings.append(FastlyCacheSettings(cache_settings, validate_choices))
 
         if 'conditions' in settings and settings['conditions'] is not None:
             for condition in settings['conditions']:
@@ -335,6 +356,7 @@ class FastlySettings(object):
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
                and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
+               and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
                and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
                and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
                and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
@@ -466,6 +488,14 @@ class FastlyClient(object):
             raise Exception("Error creating backend for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_cache_settings(self, service_id, version, cache_settings):
+        response = self._request('/service/%s/version/%s/cache_settings' % (service_id, version), 'POST', cache_settings)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating cache_settings for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
     def create_condition(self, service_id, version, condition):
         response = self._request('/service/%s/version/%s/condition' % (service_id, version), 'POST', condition)
         if response.status == 200:
@@ -548,8 +578,12 @@ class FastlyStateEnforcer(object):
         for backend in settings.backends:
             self.client.create_backend(service_id, version_number, backend)
 
+        # create conditions before dependencies (e.g. cache_settings)
         for condition in settings.conditions:
             self.client.create_condition(service_id, version_number, condition)
+
+        for cache_settings in settings.cache_settings:
+            self.client.create_cache_settings(service_id, version_number, cache_settings)
 
         for gzip in settings.gzips:
             self.client.create_gzip(service_id, version_number, gzip)
@@ -589,6 +623,7 @@ class FastlyServiceModule(object):
                 activate_new_version=dict(required=False, type='bool', default=True),
                 domains=dict(default=None, required=True, type='list'),
                 backends=dict(default=None, required=True, type='list'),
+                cache_settings=dict(default=None, required=True, type='list'),
                 conditions=dict(default=None, required=False, type='list'),
                 gzips=dict(default=None, required=False, type='list'),
                 headers=dict(default=None, required=False, type='list'),
@@ -611,6 +646,7 @@ class FastlyServiceModule(object):
             return FastlySettings({
                 'domains': self.module.params['domains'],
                 'backends': self.module.params['backends'],
+                'cache_settings': self.module.params['cache_settings'],
                 'conditions': self.module.params['conditions'],
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
