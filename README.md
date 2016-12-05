@@ -26,6 +26,18 @@ $ ansible-galaxy install Jimdo.fastly
 | headers              | false    | List of headers to manipulate for each request                                                |         |
 | response_objects     | false    | List of response objects                                                                      |         |
 
+### Backend
+
+[Fastly documentation](https://docs.fastly.com/api/config#backend)
+
+| Field         | Required | Type                                                    | Default |
+|:--------------|:---------|:--------------------------------------------------------|:--------|
+| name          | true     | string                                                  |         |
+| port          | false    | integer                                                 | 80      |
+| address       | true     | string                                                  |         |
+| ssl_hostname  | false    | string                                                  |         |
+| ssl_ca_cert   | false    | string                                                  |         |
+
 ### Condition
 
 [Fastly documentation](https://docs.fastly.com/api/config#condition)

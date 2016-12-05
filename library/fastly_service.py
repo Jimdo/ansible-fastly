@@ -139,6 +139,7 @@ class FastlyObject(object):
         param_type = self.schema[param_name].get('type', 'str')
         default = self.schema[param_name].get('default', None)
         choices = self.schema[param_name].get('choices', None)
+        exclude_empty_str = self.schema[param_name].get('exclude_empty_str', False)
 
         if param_name in config:
             value = config[param_name]
@@ -168,6 +169,16 @@ class FastlyObject(object):
                 raise FastlyValidationError(self.__class__.__name__,
                                             "Field '%s' with value '%s' couldn't be converted to integer" % (
                                             param_name, value))
+        elif param_type == 'bool':
+            try:
+                value = bool(value)
+            except ValueError:
+                raise FastlyValidationError(self.__class__.__name__,
+                                            "Field '%s' with value '%s' couldn't be converted to boolean" % (
+                                                param_name, value))
+
+        if exclude_empty_str and value == "":
+            value = None
 
         return value
 
@@ -191,7 +202,9 @@ class FastlyBackend(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'port': dict(required=False, type='int', default=80),
-        'address': dict(required=True, type='str', default=None)
+        'address': dict(required=True, type='str', default=None),
+        'ssl_hostname': dict(required=False, type='str', default=None),
+        'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True)
     }
     sort_key = lambda f: f.name
 
@@ -199,6 +212,8 @@ class FastlyBackend(FastlyObject):
         self.name = self.read_config(config, validate_choices, 'name')
         self.port = self.read_config(config, validate_choices, 'port')
         self.address = self.read_config(config, validate_choices, 'address')
+        self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
+        self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
 
 
 class FastlyCondition(FastlyObject):

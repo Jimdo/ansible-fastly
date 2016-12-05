@@ -244,6 +244,22 @@ class TestFastly(unittest.TestCase):
         self.assertEqual(service.active_version.settings, settings)
 
     @my_vcr.use_cassette()
+    def test_fastly_backend_empty_ssl_ca_cert(self):
+        settings =  FastlySettings({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'my-backend.example.net',
+                'address': 'my-backend.example.net',
+                'ssl_hostname': 'my-backend.example.net',
+                'ssl_ca_cert': ''
+            }]
+        })
+        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
+        self.assertEqual(service.active_version.settings, settings)
+
+    @my_vcr.use_cassette()
     def test_fastly_header_priority_not_required(self):
         settings =  FastlySettings({
             'domains': [{
