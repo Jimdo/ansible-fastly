@@ -21,6 +21,7 @@ $ ansible-galaxy install Jimdo.fastly
 | activate_new_version | false    | Configures whether newly created versions should be activated automatically                   | true    |
 | domains              | true     | List of domain names to serve as entry points for your service                                |         |
 | backends             | true     | List of backends to service requests from your domains                                        |         |
+| cache_settings       | false    | List of cache settings                                                                        |         |
 | conditions           | false    | List of conditions                                                                            |         |
 | gzips                | false    | List of gzip configurations                                                                   |         |
 | headers              | false    | List of headers to manipulate for each request                                                |         |
@@ -37,6 +38,17 @@ $ ansible-galaxy install Jimdo.fastly
 | address       | true     | string                                                  |         |
 | ssl_hostname  | false    | string                                                  |         |
 | ssl_ca_cert   | false    | string                                                  |         |
+
+### Cache Settings
+
+[Fastly documentation](https://docs.fastly.com/api/config#cache_settings)
+
+| Field           | Required | Type                                                    | Default |
+|:----------------|:---------|:--------------------------------------------------------|:--------|
+| name            | true     | string                                                  |         |
+| action          | false    | enum ('cache', 'pass', 'restart')                       |         |
+| cache_condition | false    | string                                                  |         |
+| stale_ttl       | false    | integer                                                 | 0       |
 
 ### Condition
 
