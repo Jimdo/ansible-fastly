@@ -577,12 +577,12 @@ class FastlyStateEnforcer(object):
         for domain in settings.domains:
             self.client.create_domain(service_id, version_number, domain)
 
-        for backend in settings.backends:
-            self.client.create_backend(service_id, version_number, backend)
-
         # create conditions before dependencies (e.g. cache_settings)
         for condition in settings.conditions:
             self.client.create_condition(service_id, version_number, condition)
+
+        for backend in settings.backends:
+            self.client.create_backend(service_id, version_number, backend)
 
         for cache_settings in settings.cache_settings:
             self.client.create_cache_settings(service_id, version_number, cache_settings)
