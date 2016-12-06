@@ -203,6 +203,7 @@ class FastlyBackend(FastlyObject):
         'name': dict(required=True, type='str', default=None),
         'port': dict(required=False, type='int', default=80),
         'address': dict(required=True, type='str', default=None),
+        'request_condition': dict(required=False, type='str', default=''),
         'ssl_hostname': dict(required=False, type='str', default=None),
         'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True)
     }
@@ -212,6 +213,7 @@ class FastlyBackend(FastlyObject):
         self.name = self.read_config(config, validate_choices, 'name')
         self.port = self.read_config(config, validate_choices, 'port')
         self.address = self.read_config(config, validate_choices, 'address')
+        self.request_condition = self.read_config(config, validate_choices, 'request_condition')
         self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
         self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
 
