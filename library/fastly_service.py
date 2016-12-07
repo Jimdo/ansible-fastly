@@ -46,6 +46,10 @@ options:
         required: false
         description:
             - List of response objects
+    settings:
+        required: false
+        description:
+            - Handles default settings for a service.
 '''
 
 EXAMPLES = '''
@@ -317,6 +321,20 @@ class FastlyResponseObject(FastlyObject):
         self.status = self.read_config(config, validate_choices, 'status')
 
 
+class FastlySettingsObject(FastlyObject):
+    schema = {
+        'general.default_ttl': dict(required=False, type='int', default=3600)
+    }
+
+    def __init__(self, config, validate_choices):
+        self.general_default_ttl = self.read_config(config, validate_choices, 'general.default_ttl')
+
+    def to_json(self):
+        return {
+            'general.default_ttl': self.general_default_ttl
+        }
+
+
 class FastlySettings(object):
     def __init__(self, settings, validate_choices = True):
         self.domains = []
@@ -326,6 +344,7 @@ class FastlySettings(object):
         self.gzips = []
         self.headers = []
         self.response_objects = []
+        self.settings = FastlySettingsObject(dict(), validate_choices)
 
         if 'domains' in settings and settings['domains'] is not None:
             for domain in settings['domains']:
@@ -355,6 +374,9 @@ class FastlySettings(object):
             for response_object in settings['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
+        if 'settings' in settings and settings['settings'] is not None:
+            self.settings = FastlySettingsObject(settings['settings'], validate_choices)
+
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
                and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
@@ -362,7 +384,8 @@ class FastlySettings(object):
                and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
                and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
                and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
-               and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key)
+               and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
+               and self.settings == other.settings
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -532,6 +555,14 @@ class FastlyClient(object):
             raise Exception("Error creating response object for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_settings(self, service_id, version, settings):
+        response = self._request('/service/%s/version/%s/settings' % (service_id, version), 'PUT', settings)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating settings for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
 
 class FastlyStateEnforcerResult(object):
     def __init__(self, changed, actions, service):
@@ -596,6 +627,9 @@ class FastlyStateEnforcer(object):
         for response_object in settings.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
+        if settings.settings:
+            self.client.create_settings(service_id, version_number, settings.settings)
+
         if activate_version:
             self.client.activate_version(service_id, version_number)
 
@@ -630,6 +664,7 @@ class FastlyServiceModule(object):
                 gzips=dict(default=None, required=False, type='list'),
                 headers=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
+                settings=dict(default=None, required=False, type='dict'),
             ),
             supports_check_mode=False
         )
@@ -652,7 +687,8 @@ class FastlyServiceModule(object):
                 'conditions': self.module.params['conditions'],
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
-                'response_objects': self.module.params['response_objects']
+                'response_objects': self.module.params['response_objects'],
+                'settings': self.module.params['settings']
             })
         except FastlyValidationError as err:
             self.module.fail_json(msg='Error in ' + err.cls + ': ' + err.message)
