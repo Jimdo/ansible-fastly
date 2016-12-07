@@ -335,8 +335,8 @@ class FastlySettingsObject(FastlyObject):
         }
 
 
-class FastlySettings(object):
-    def __init__(self, settings, validate_choices = True):
+class FastlyConfiguration(object):
+    def __init__(self, configuration, validate_choices = True):
         self.domains = []
         self.backends = []
         self.cache_settings = []
@@ -346,36 +346,36 @@ class FastlySettings(object):
         self.response_objects = []
         self.settings = FastlySettingsObject(dict(), validate_choices)
 
-        if 'domains' in settings and settings['domains'] is not None:
-            for domain in settings['domains']:
+        if 'domains' in configuration and configuration['domains'] is not None:
+            for domain in configuration['domains']:
                 self.domains.append(FastlyDomain(domain, validate_choices))
 
-        if 'backends' in settings and settings['backends'] is not None:
-            for backend in settings['backends']:
+        if 'backends' in configuration and configuration['backends'] is not None:
+            for backend in configuration['backends']:
                 self.backends.append(FastlyBackend(backend, validate_choices))
 
-        if 'cache_settings' in settings and settings['cache_settings'] is not None:
-            for cache_settings in settings['cache_settings']:
+        if 'cache_settings' in configuration and configuration['cache_settings'] is not None:
+            for cache_settings in configuration['cache_settings']:
                 self.cache_settings.append(FastlyCacheSettings(cache_settings, validate_choices))
 
-        if 'conditions' in settings and settings['conditions'] is not None:
-            for condition in settings['conditions']:
+        if 'conditions' in configuration and configuration['conditions'] is not None:
+            for condition in configuration['conditions']:
                 self.conditions.append(FastlyCondition(condition, validate_choices))
 
-        if 'gzips' in settings and settings['gzips'] is not None:
-            for gzip in settings['gzips']:
+        if 'gzips' in configuration and configuration['gzips'] is not None:
+            for gzip in configuration['gzips']:
                 self.gzips.append(FastlyGzip(gzip, validate_choices))
 
-        if 'headers' in settings and settings['headers'] is not None:
-            for header in settings['headers']:
+        if 'headers' in configuration and configuration['headers'] is not None:
+            for header in configuration['headers']:
                 self.headers.append(FastlyHeader(header, validate_choices))
 
-        if 'response_objects' in settings and settings['response_objects'] is not None:
-            for response_object in settings['response_objects']:
+        if 'response_objects' in configuration and configuration['response_objects'] is not None:
+            for response_object in configuration['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
-        if 'settings' in settings and settings['settings'] is not None:
-            self.settings = FastlySettingsObject(settings['settings'], validate_choices)
+        if 'settings' in configuration and configuration['settings'] is not None:
+            self.settings = FastlySettingsObject(configuration['settings'], validate_choices)
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
@@ -392,10 +392,10 @@ class FastlySettings(object):
 
 
 class FastlyVersion(object):
-    def __init__(self, version_settings):
-        self.settings = FastlySettings(version_settings, False)
-        self.number = version_settings['number']
-        self.active = version_settings['active']
+    def __init__(self, version_configuration):
+        self.configuration = FastlyConfiguration(version_configuration, False)
+        self.number = version_configuration['number']
+        self.active = version_configuration['active']
 
 
 class FastlyService(object):
@@ -575,7 +575,7 @@ class FastlyStateEnforcer(object):
     def __init__(self, client):
         self.client = client
 
-    def apply_settings(self, service_name, fastly_settings, activate_new_version=True):
+    def apply_configuration(self, service_name, fastly_configuration, activate_new_version=True):
 
         actions = []
 
@@ -591,44 +591,44 @@ class FastlyStateEnforcer(object):
             current_version = service.latest_version
 
         if current_version is None:
-            self.deploy_version_with_settings(service.id, fastly_settings, activate_new_version)
+            self.deploy_version_with_configuration(service.id, fastly_configuration, activate_new_version)
             actions.append("Deployed new version because service has no active version")
-        elif fastly_settings != current_version.settings:
-            self.deploy_version_with_settings(service.id, fastly_settings, activate_new_version)
+        elif fastly_configuration != current_version.configuration:
+            self.deploy_version_with_configuration(service.id, fastly_configuration, activate_new_version)
             actions.append("Deployed new version because settings are not up to date")
 
         changed = len(actions) > 0
         service = self.client.get_service(service.id)
         return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service)
 
-    def deploy_version_with_settings(self, service_id, settings, activate_version):
+    def deploy_version_with_configuration(self, service_id, configuration, activate_version):
         version = self.client.create_version(service_id)
         version_number = version['number']
 
-        for domain in settings.domains:
+        for domain in configuration.domains:
             self.client.create_domain(service_id, version_number, domain)
 
         # create conditions before dependencies (e.g. cache_settings)
-        for condition in settings.conditions:
+        for condition in configuration.conditions:
             self.client.create_condition(service_id, version_number, condition)
 
-        for backend in settings.backends:
+        for backend in configuration.backends:
             self.client.create_backend(service_id, version_number, backend)
 
-        for cache_settings in settings.cache_settings:
+        for cache_settings in configuration.cache_settings:
             self.client.create_cache_settings(service_id, version_number, cache_settings)
 
-        for gzip in settings.gzips:
+        for gzip in configuration.gzips:
             self.client.create_gzip(service_id, version_number, gzip)
 
-        for header in settings.headers:
+        for header in configuration.headers:
             self.client.create_header(service_id, version_number, header)
 
-        for response_object in settings.response_objects:
+        for response_object in configuration.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
-        if settings.settings:
-            self.client.create_settings(service_id, version_number, settings.settings)
+        if configuration.settings:
+            self.client.create_settings(service_id, version_number, configuration.settings)
 
         if activate_version:
             self.client.activate_version(service_id, version_number)
@@ -678,9 +678,9 @@ class FastlyServiceModule(object):
                 self.module.fail_json(msg="A Fastly API key is required for this module. Please set it and try again")
         return FastlyStateEnforcer(FastlyClient(fastly_api_key))
 
-    def settings(self):
+    def configuration(self):
         try:
-            return FastlySettings({
+            return FastlyConfiguration({
                 'domains': self.module.params['domains'],
                 'backends': self.module.params['backends'],
                 'cache_settings': self.module.params['cache_settings'],
@@ -710,7 +710,7 @@ class FastlyServiceModule(object):
 
                 self.module.exit_json(changed=result.changed, service_id=service_id, actions=result.actions)
             else:
-                result = enforcer.apply_settings(service_name, self.settings(), activate_new_version)
+                result = enforcer.apply_configuration(service_name, self.configuration(), activate_new_version)
                 self.module.exit_json(changed=result.changed, service_id=result.service.id, actions=result.actions)
 
         except Exception as err:

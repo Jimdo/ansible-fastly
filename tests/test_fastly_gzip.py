@@ -6,7 +6,7 @@ import sys
 from test_common import TestCommon
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'library'))
-from fastly_service import FastlySettings
+from fastly_service import FastlyConfiguration
 
 class TestFastlyGzip(TestCommon):
 
@@ -14,8 +14,8 @@ class TestFastlyGzip(TestCommon):
 
     @TestCommon.vcr.use_cassette()
     def test_fastly_gzip(self):
-        gzip_settings = self.minimal_settings.copy()
-        gzip_settings.update({
+        gzip_configuration = self.minimal_configuration.copy()
+        gzip_configuration.update({
             'gzips': [{
                 'name': self.GZIP_NAME,
                 'content_types': 'text/html text/css application/javascript',
@@ -23,10 +23,10 @@ class TestFastlyGzip(TestCommon):
             }]
         })
 
-        settings = FastlySettings(gzip_settings)
-        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
-        self.assertEqual(service.active_version.settings.gzips[0].name, self.GZIP_NAME)
-        self.assertEqual(service.active_version.settings, settings)
+        configuration = FastlyConfiguration(gzip_configuration)
+        service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
+        self.assertEqual(service.active_version.configuration.gzips[0].name, self.GZIP_NAME)
+        self.assertEqual(service.active_version.configuration, configuration)
 
 if __name__ == '__main__':
     unittest.main()
