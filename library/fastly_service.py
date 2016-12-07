@@ -321,7 +321,7 @@ class FastlyResponseObject(FastlyObject):
         self.status = self.read_config(config, validate_choices, 'status')
 
 
-class FastlySettingsObject(FastlyObject):
+class FastlySettings(FastlyObject):
     schema = {
         'general.default_ttl': dict(required=False, type='int', default=3600)
     }
@@ -344,7 +344,7 @@ class FastlyConfiguration(object):
         self.gzips = []
         self.headers = []
         self.response_objects = []
-        self.settings = FastlySettingsObject(dict(), validate_choices)
+        self.settings = FastlySettings(dict(), validate_choices)
 
         if 'domains' in configuration and configuration['domains'] is not None:
             for domain in configuration['domains']:
@@ -375,7 +375,7 @@ class FastlyConfiguration(object):
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
         if 'settings' in configuration and configuration['settings'] is not None:
-            self.settings = FastlySettingsObject(configuration['settings'], validate_choices)
+            self.settings = FastlySettings(configuration['settings'], validate_choices)
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
