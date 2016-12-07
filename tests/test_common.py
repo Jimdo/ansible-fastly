@@ -21,7 +21,7 @@ class TestCommon(unittest.TestCase):
             path_transformer=vcr.VCR.ensure_suffix('.yml'),
     )
 
-    minimal_settings = {
+    minimal_configuration = {
         'domains': [{
             'name': FASTLY_TEST_DOMAIN,
         }],

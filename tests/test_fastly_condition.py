@@ -6,7 +6,7 @@ import sys
 from test_common import TestCommon
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'library'))
-from fastly_service import FastlySettings
+from fastly_service import FastlyConfiguration
 
 class TestFastlyCondition(TestCommon):
 
@@ -14,8 +14,8 @@ class TestFastlyCondition(TestCommon):
 
     @TestCommon.vcr.use_cassette()
     def test_fastly_condition(self):
-        condition_settings = self.minimal_settings.copy()
-        condition_settings.update({
+        condition_configuration = self.minimal_configuration.copy()
+        condition_configuration.update({
             'conditions': [{
                 'name': self.CONDITION_NAME,
                 'priority': 0,
@@ -24,10 +24,10 @@ class TestFastlyCondition(TestCommon):
             }]
         })
 
-        settings = FastlySettings(condition_settings)
-        service = self.enforcer.apply_settings(self.FASTLY_TEST_SERVICE, settings).service
-        self.assertEqual(service.active_version.settings.conditions[0].name, self.CONDITION_NAME)
-        self.assertEqual(service.active_version.settings, settings)
+        configuration = FastlyConfiguration(condition_configuration)
+        service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
+        self.assertEqual(service.active_version.configuration.conditions[0].name, self.CONDITION_NAME)
+        self.assertEqual(service.active_version.configuration, configuration)
 
 if __name__ == '__main__':
     unittest.main()

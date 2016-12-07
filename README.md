@@ -26,6 +26,7 @@ $ ansible-galaxy install Jimdo.fastly
 | gzips                | false    | List of gzip configurations                                                                   |         |
 | headers              | false    | List of headers to manipulate for each request                                                |         |
 | response_objects     | false    | List of response objects                                                                      |         |
+| settings             | false    | Settings object                                                                               |         |
 
 ### Backend
 
@@ -90,6 +91,15 @@ $ ansible-galaxy install Jimdo.fastly
 | request_condition | false    | string                                                    |         |
 | response          | false    | string                                                    | Ok      |
 | status            | false    | integer                                                   | 200     |
+
+### Settings
+
+[Fastly documentation](https://docs.fastly.com/api/config#settings)
+
+| Field               | Required | Type                                                      | Default |
+|:--------------------|:---------|:----------------------------------------------------------|:--------|
+| general.default_ttl | false    | integer                                                   | 3600    |
+
 
 ## Examples
 
