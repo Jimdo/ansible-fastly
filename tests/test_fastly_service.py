@@ -251,6 +251,7 @@ class TestFastly(unittest.TestCase):
             }],
             'backends': [{
                 'name': 'my-backend.example.net',
+                'port': 443,
                 'address': 'my-backend.example.net',
                 'ssl_hostname': 'my-backend.example.net',
                 'ssl_ca_cert': ''
