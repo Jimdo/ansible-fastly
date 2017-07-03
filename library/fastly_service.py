@@ -284,6 +284,7 @@ class FastlyHeader(FastlyObject):
         'regex': dict(required=False, type='str', default=''),
         'request_condition': dict(required=False, type='str', default=None),
         'response_condition': dict(required=False, type='str', default=None),
+        'cache_condition': dict(required=False, type='str', default=None),
         'src': dict(required=True, type='str', default=None),
         'substitution': dict(required=False, type='str', default=''),
         'type': dict(required=True, type='str', default=None,
@@ -300,6 +301,7 @@ class FastlyHeader(FastlyObject):
         self.regex = self.read_config(config, validate_choices, 'regex')
         self.request_condition = self.read_config(config, validate_choices, 'request_condition')
         self.response_condition = self.read_config(config, validate_choices, 'response_condition')
+        self.cache_condition = self.read_config(config, validate_choices, 'cache_condition')
         self.src = self.read_config(config, validate_choices, 'src')
         self.substitution = self.read_config(config, validate_choices, 'substitution')
         self.type = self.read_config(config, validate_choices, 'type')

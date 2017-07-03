@@ -76,7 +76,8 @@ $ ansible-galaxy install Jimdo.fastly
 | priority           | false    | integer                                                   | 100     |
 | regex              | false    | string                                                    |         |
 | request_condition  | false    | string                                                    |         |
-| response_condition | false    | string                                                    |         | 
+| response_condition | false    | string                                                    |         |
+| cache_condition    | false    | string                                                    |         |
 | src                | true     | string                                                    |         |
 | substitution       | false    | string                                                    |         |
 | type               | true     | enum ('request', 'fetch', 'cache', 'response')            |         |
