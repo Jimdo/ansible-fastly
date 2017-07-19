@@ -139,3 +139,15 @@ $ ansible-galaxy install Jimdo.fastly
 ``` bash
 $ ansible-playbook -i localhost, fastly.yml
 ```
+
+## Development
+
+### Running the tests
+```
+FASTLY_API_KEY=some_secret python -m unittest discover tests
+```
+
+#### Updating the VCR cassettes
+[VCR.py](https://vcrpy.readthedocs.io/en/latest/) is used in the tests for mocking HTTP requests. 
+
+In order to update the cassettes just delete the `tests/fixtures/cassettes` directory and run the tests as usual. You have to use a valid Fastly API key for the recording to work.
