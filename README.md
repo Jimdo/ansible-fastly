@@ -139,3 +139,9 @@ $ ansible-galaxy install Jimdo.fastly
 ``` bash
 $ ansible-playbook -i localhost, fastly.yml
 ```
+
+## Development
+
+### Updating the VCR cassettes
+
+[VCR.py](https://vcrpy.readthedocs.io/en/latest/) is used for mocking HTTP requests. 
