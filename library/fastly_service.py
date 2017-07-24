@@ -209,7 +209,9 @@ class FastlyBackend(FastlyObject):
         'address': dict(required=True, type='str', default=None),
         'request_condition': dict(required=False, type='str', default=''),
         'ssl_hostname': dict(required=False, type='str', default=None),
-        'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True)
+        'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'shield': dict(required=False, type='str', default=None, exclude_empty_str=True)
     }
     sort_key = lambda f: f.name
 
@@ -220,6 +222,8 @@ class FastlyBackend(FastlyObject):
         self.request_condition = self.read_config(config, validate_choices, 'request_condition')
         self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
         self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
+        self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
+        self.shield = self.read_config(config, validate_choices, 'shield')
 
 
 class FastlyCacheSettings(FastlyObject):

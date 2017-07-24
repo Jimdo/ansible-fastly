@@ -32,13 +32,15 @@ $ ansible-galaxy install Jimdo.fastly
 
 [Fastly documentation](https://docs.fastly.com/api/config#backend)
 
-| Field         | Required | Type                                                    | Default |
-|:--------------|:---------|:--------------------------------------------------------|:--------|
-| name          | true     | string                                                  |         |
-| port          | false    | integer                                                 | 80      |
-| address       | true     | string                                                  |         |
-| ssl_hostname  | false    | string                                                  |         |
-| ssl_ca_cert   | false    | string                                                  |         |
+| Field             | Required | Type                                                    | Default |
+|:------------------|:---------|:--------------------------------------------------------|:--------|
+| name              | true     | string                                                  |         |
+| port              | false    | integer                                                 | 80      |
+| address           | true     | string                                                  |         |
+| ssl_hostname      | false    | string                                                  |         |
+| ssl_ca_cert       | false    | string                                                  |         |
+| ssl_cert_hostname | false    | string                                                  |         |
+| shield            | false    | string                                                  |         |
 
 ### Cache Settings
 
