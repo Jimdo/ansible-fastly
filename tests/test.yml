@@ -32,4 +32,13 @@
         response_objects:
           - name: Set 302 status code
             status: 302
+        vcl_snippets:
+          - name: Deliver stale content
+            type: deliver
+            content: >
+                if (resp.status >= 500 && resp.status < 600) {
+                    if (stale.exists) {
+                        restart;
+                    }
+                }
 
