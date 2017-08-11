@@ -122,6 +122,7 @@ EXAMPLES = '''
 
 import httplib
 import urllib
+import json
 
 from ansible.module_utils.basic import *
 
@@ -342,7 +343,7 @@ class FastlyResponseObject(FastlyObject):
         self.status = self.read_config(config, validate_choices, 'status')
 
 
-class FastlyVclSnippets(FastlyObject):
+class FastlyVclSnippet(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'dynamic': dict(required=False, type='int', default=0),
@@ -383,7 +384,7 @@ class FastlyConfiguration(object):
         self.gzips = []
         self.headers = []
         self.response_objects = []
-        self.vcl_snippets = []
+        self.snippets = []
         self.settings = FastlySettings(dict(), validate_choices)
 
         if 'domains' in configuration and configuration['domains'] is not None:
@@ -414,9 +415,9 @@ class FastlyConfiguration(object):
             for response_object in configuration['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
-        if 'vcl_snippets' in configuration and configuration['vcl_snippets'] is not None:
-            for vcl_snippet in configuration['vcl_snippets']:
-                self.vcl_snippets.append(FastlyVclSnippets(vcl_snippet, validate_choices))
+        if 'snippets' in configuration and configuration['snippets'] is not None:
+            for snippet in configuration['snippets']:
+                self.snippets.append(FastlyVclSnippet(snippet, validate_choices))
 
         if 'settings' in configuration and configuration['settings'] is not None:
             self.settings = FastlySettings(configuration['settings'], validate_choices)
@@ -429,7 +430,7 @@ class FastlyConfiguration(object):
                and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
                and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
                and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
-               and sorted(self.vcl_snippets, key=FastlyVclSnippets.sort_key) == sorted(other.vcl_snippets, key=FastlyVclSnippets.sort_key) \
+               and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
                and self.settings == other.settings
 
     def __ne__(self, other):
@@ -602,6 +603,7 @@ class FastlyClient(object):
 
     def create_vcl_snippet(self, service_id, version, vcl_snippet):
         response = self._request('/service/%s/version/%s/snippet' % (service_id, version), 'POST', vcl_snippet)
+
         if response.status == 200:
             return response.payload
         else:
@@ -680,7 +682,7 @@ class FastlyStateEnforcer(object):
         for response_object in configuration.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
-        for vcl_snippet in configuration.vcl_snippets:
+        for vcl_snippet in configuration.snippets:
             self.client.create_vcl_snippet(service_id, version_number, vcl_snippet)
 
         if configuration.settings:
@@ -745,7 +747,7 @@ class FastlyServiceModule(object):
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
                 'response_objects': self.module.params['response_objects'],
-                'vcl_snippets': self.module.params['vcl_snippets'],
+                'snippets': self.module.params['vcl_snippets'],
                 'settings': self.module.params['settings']
             })
         except FastlyValidationError as err:
