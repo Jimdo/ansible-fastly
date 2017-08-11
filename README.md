@@ -156,13 +156,6 @@ $ ansible-playbook -i localhost, fastly.yml
 
 ## Development
 
-### Running the tests
-
-```bash
-# prepare the environment ...
-$ printf '[defaults]\nroles_path=../' >ansible.cfg
-$ ln -snf $PWD ../Jimdo.fastly
-
 # do it!!
 $ FASTLY_API_KEY=some_secret python -m unittest discover tests
 ```
