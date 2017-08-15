@@ -156,8 +156,9 @@ $ ansible-playbook -i localhost, fastly.yml
 
 ## Development
 
-# do it!!
-$ FASTLY_API_KEY=some_secret python -m unittest discover tests
+### Running the tests
+```
+FASTLY_API_KEY=some_secret python -m unittest discover tests
 ```
 
 #### Updating the VCR cassettes
