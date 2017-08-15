@@ -122,7 +122,6 @@ EXAMPLES = '''
 
 import httplib
 import urllib
-import json
 
 from ansible.module_utils.basic import *
 
