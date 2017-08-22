@@ -46,6 +46,10 @@ options:
         required: false
         description:
             - List of response objects
+    vcl_snippets:
+        required: false
+        description:
+            - List of VCL snippets
     settings:
         required: false
         description:
@@ -76,6 +80,17 @@ EXAMPLES = '''
         src: http://test3.example.net req.url.path
         ignore_if_set: 0
         priority: 10
+    vcl_snippets
+      - name: Deliver stale content
+        dynamic: 0
+        type: deliver
+        content: >
+            if (resp.status >= 500 && resp.status < 600) {
+                if (stale.exists) {
+                    restart;
+                }
+            }
+        priority: 110
     response_objects:
       - name: Set 301 status code
         status: 301
@@ -327,6 +342,24 @@ class FastlyResponseObject(FastlyObject):
         self.status = self.read_config(config, validate_choices, 'status')
 
 
+class FastlyVclSnippet(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'dynamic': dict(required=False, type='int', default=0),
+        'type': dict(required=False, type='str', default='init'),
+        'content': dict(required=True, type='str', default=None),
+        'priority': dict(required=False, type='int', default=100)
+    }
+    sort_key = lambda f: f.name
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.dynamic = self.read_config(config, validate_choices, 'dynamic')
+        self.type = self.read_config(config, validate_choices, 'type')
+        self.content = self.read_config(config, validate_choices, 'content')
+        self.priority = self.read_config(config, validate_choices, 'priority')
+
+
 class FastlySettings(FastlyObject):
     schema = {
         'general.default_ttl': dict(required=False, type='int', default=3600)
@@ -350,6 +383,7 @@ class FastlyConfiguration(object):
         self.gzips = []
         self.headers = []
         self.response_objects = []
+        self.snippets = []
         self.settings = FastlySettings(dict(), validate_choices)
 
         if 'domains' in configuration and configuration['domains'] is not None:
@@ -380,6 +414,10 @@ class FastlyConfiguration(object):
             for response_object in configuration['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
+        if 'snippets' in configuration and configuration['snippets'] is not None:
+            for snippet in configuration['snippets']:
+                self.snippets.append(FastlyVclSnippet(snippet, validate_choices))
+
         if 'settings' in configuration and configuration['settings'] is not None:
             self.settings = FastlySettings(configuration['settings'], validate_choices)
 
@@ -391,6 +429,7 @@ class FastlyConfiguration(object):
                and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
                and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
                and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
+               and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
                and self.settings == other.settings
 
     def __ne__(self, other):
@@ -561,6 +600,15 @@ class FastlyClient(object):
             raise Exception("Error creating response object for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_vcl_snippet(self, service_id, version, vcl_snippet):
+        response = self._request('/service/%s/version/%s/snippet' % (service_id, version), 'POST', vcl_snippet)
+
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating VCL snippet '%s' for service %s, version %s (%s)" % (vcl_snippet['name'],
+                service_id, version, response.payload['detail']))
+
     def create_settings(self, service_id, version, settings):
         response = self._request('/service/%s/version/%s/settings' % (service_id, version), 'PUT', settings)
         if response.status == 200:
@@ -633,6 +681,9 @@ class FastlyStateEnforcer(object):
         for response_object in configuration.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
+        for vcl_snippet in configuration.snippets:
+            self.client.create_vcl_snippet(service_id, version_number, vcl_snippet)
+
         if configuration.settings:
             self.client.create_settings(service_id, version_number, configuration.settings)
 
@@ -670,6 +721,7 @@ class FastlyServiceModule(object):
                 gzips=dict(default=None, required=False, type='list'),
                 headers=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
+                vcl_snippets=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
             ),
             supports_check_mode=False
@@ -694,6 +746,7 @@ class FastlyServiceModule(object):
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
                 'response_objects': self.module.params['response_objects'],
+                'snippets': self.module.params['vcl_snippets'],
                 'settings': self.module.params['settings']
             })
         except FastlyValidationError as err:

@@ -95,6 +95,18 @@ $ ansible-galaxy install Jimdo.fastly
 | response          | false    | string                                                    | Ok      |
 | status            | false    | integer                                                   | 200     |
 
+### VCL Snippets
+
+[Fastly documentation](https://docs.fastly.com/api/config#snippet)
+
+| Field     | Required | Type                                    | Default |
+|:----------|:---------|:----------------------------------------|:--------|
+| name      | true     | string                                  |         |
+| dynamic   | false    | integer                                 | 0       |
+| type      | false    | string                                  | "init"  |
+| content   | true     | string                                  |         |
+| priority  | false    | integer                                 | 100     |
+
 ### Settings
 
 [Fastly documentation](https://docs.fastly.com/api/config#settings)
