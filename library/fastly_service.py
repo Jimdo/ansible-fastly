@@ -379,8 +379,7 @@ class FastlyVclSnippet(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'dynamic': dict(required=False, type='int', default=0),
-        'type': dict(required=False, type='str', default='init',
-                     choices=['init', 'recv', 'hit', 'miss', 'pass', 'fetch', 'error', 'deliver', 'log', 'none', None]),
+        'type': dict(required=False, type='str', default='init'),
         'content': dict(required=True, type='str', default=None),
         'priority': dict(required=False, type='int', default=100)
     }
