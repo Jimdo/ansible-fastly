@@ -27,6 +27,7 @@ $ ansible-galaxy install Jimdo.fastly
 | headers              | false    | List of headers to manipulate for each request                                                |         |
 | response_objects     | false    | List of response objects                                                                      |         |
 | settings             | false    | Settings object                                                                               |         |
+| vcl_snippets         | false    | List of VCL snippets                                                                          |         |
 
 ### Backend
 
