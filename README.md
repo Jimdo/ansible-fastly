@@ -23,6 +23,7 @@ $ ansible-galaxy install Jimdo.fastly
 | backends             | true     | List of backends to service requests from your domains                                        |         |
 | cache_settings       | false    | List of cache settings                                                                        |         |
 | conditions           | false    | List of conditions                                                                            |         |
+| directors            | false    | List of directors                                                                             |         |
 | gzips                | false    | List of gzip configurations                                                                   |         |
 | headers              | false    | List of headers to manipulate for each request                                                |         |
 | response_objects     | false    | List of response objects                                                                      |         |
@@ -65,6 +66,21 @@ $ ansible-galaxy install Jimdo.fastly
 | priority  | false    | integer                                                 | 0       |
 | statement | true     | string                                                  |         |
 | type      | true     | enum ('REQUEST', 'PREFETCH', 'CACHE', 'RESPONSE')       |         |
+
+### Director
+
+[Fastly documentation](https://docs.fastly.com/api/config#director)
+
+| Field     | Required | Type                                                    | Default |
+|:----------|:---------|:--------------------------------------------------------|:--------|
+| name      | true     | string                                                  |         |
+| backends  | false    | array of strings                                        |         |
+| capacity  | false    | integer                                                 | 100     |
+| comment   | false    | string                                                  | ''      |
+| quorum    | false    | integer                                                 | 75      |
+| shield    | false    | string                                                  |         |
+| type      | false    | integer                                                 | 1       |
+| retries   | false    | integer                                                 | 5       |
 
 ### Header
 

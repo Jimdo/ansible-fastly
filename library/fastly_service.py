@@ -34,6 +34,10 @@ options:
         required: false
         description:
             - List of conditions
+    directors:
+        required: false
+        description:
+            - List of directors
     gzips:
         required: false
         description:
@@ -195,6 +199,11 @@ class FastlyObject(object):
                 raise FastlyValidationError(self.__class__.__name__,
                                             "Field '%s' with value '%s' couldn't be converted to boolean" % (
                                                 param_name, value))
+        elif param_type == 'list':
+            if not isinstance(value, list):
+                raise FastlyValidationError(self.__class__.__name__,
+                                            "Field '%s' with value '%s' is not a list" % (
+                                                param_name, value))
 
         if exclude_empty_str and value == "":
             value = None
@@ -274,6 +283,30 @@ class FastlyCondition(FastlyObject):
         self.priority = self.read_config(config, validate_choices, 'priority')
         self.statement = self.read_config(config, validate_choices, 'statement')
         self.type = self.read_config(config, validate_choices, 'type')
+
+
+class FastlyDirector(FastlyObject):
+    schema = {
+        'name':     dict(required=True,  type='str',  default=None),
+        'backends': dict(required=False, type='list', default=None),
+        'capacity': dict(required=False, type='int',  default=100),
+        'comment':  dict(required=False, type='str',  default=''),
+        'quorum':   dict(required=False, type='int',  default=75),
+        'shield':   dict(required=False, type='str',  default=None),
+        'type':     dict(required=False, type='int',  default=1),
+        'retries':  dict(required=False, type='int',  default=5)
+    }
+    sort_key = lambda f: f.name
+
+    def __init__(self, config, validate_choices):
+        self.name     = self.read_config(config, validate_choices, 'name')
+        self.backends = self.read_config(config, validate_choices, 'backends')
+        self.capacity = self.read_config(config, validate_choices, 'capacity')
+        self.comment  = self.read_config(config, validate_choices, 'comment')
+        self.quorum   = self.read_config(config, validate_choices, 'quorum')
+        self.shield   = self.read_config(config, validate_choices, 'shield')
+        self.type     = self.read_config(config, validate_choices, 'type')
+        self.retries  = self.read_config(config, validate_choices, 'retries')
 
 
 class FastlyGzip(FastlyObject):
@@ -380,6 +413,7 @@ class FastlyConfiguration(object):
         self.backends = []
         self.cache_settings = []
         self.conditions = []
+        self.directors = []
         self.gzips = []
         self.headers = []
         self.response_objects = []
@@ -401,6 +435,10 @@ class FastlyConfiguration(object):
         if 'conditions' in configuration and configuration['conditions'] is not None:
             for condition in configuration['conditions']:
                 self.conditions.append(FastlyCondition(condition, validate_choices))
+
+        if 'directors' in configuration and configuration['directors'] is not None:
+            for director in configuration['directors']:
+                self.directors.append(FastlyDirector(director, validate_choices))
 
         if 'gzips' in configuration and configuration['gzips'] is not None:
             for gzip in configuration['gzips']:
@@ -426,6 +464,7 @@ class FastlyConfiguration(object):
                and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
                and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
                and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
+               and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
                and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
                and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
                and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
@@ -503,7 +542,7 @@ class FastlyClient(object):
         if response.status == 200:
             return self.get_service(response.payload['id'])
         else:
-            raise Exception("Error creating service with name '%s'" % service_name)
+            raise Exception("Error creating service with name '%s': %s" % (service_name, response.payload['detail']))
 
     def delete_service(self, service_name, deactivate_active_version=True):
         service = self.get_service_by_name(service_name)
@@ -557,6 +596,21 @@ class FastlyClient(object):
         else:
             raise Exception("Error creating backend for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
+
+    def create_director(self, service_id, version, director):
+        response = self._request('/service/%s/version/%s/director' % (service_id, version), 'POST', director)
+        if response.status != 200:
+            raise Exception("Error creating director for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
+        payload = response.payload
+        if director.backends is not None:
+            for backend in director.backends:
+                response = self._request('/service/%s/version/%s/director/%s/backend/%s' % (service_id, version, director.name, backend), 'POST')
+                if response.status != 200:
+                    raise Exception("Error establishing a relationship between director %s and backend %s,  service %s, version %s (%s)" % (
+                        director.name, backend, service_id, version, response.payload['detail']))
+        return payload
 
     def create_cache_settings(self, service_id, version, cache_settings):
         response = self._request('/service/%s/version/%s/cache_settings' % (service_id, version), 'POST', cache_settings)
@@ -669,6 +723,10 @@ class FastlyStateEnforcer(object):
         for backend in configuration.backends:
             self.client.create_backend(service_id, version_number, backend)
 
+        # director should follow after backends
+        for director in configuration.directors:
+            self.client.create_director(service_id, version_number, director)
+
         for cache_settings in configuration.cache_settings:
             self.client.create_cache_settings(service_id, version_number, cache_settings)
 
@@ -718,6 +776,7 @@ class FastlyServiceModule(object):
                 backends=dict(default=None, required=True, type='list'),
                 cache_settings=dict(default=None, required=False, type='list'),
                 conditions=dict(default=None, required=False, type='list'),
+                directors=dict(default=None, required=False, type='list'),
                 gzips=dict(default=None, required=False, type='list'),
                 headers=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
@@ -743,6 +802,7 @@ class FastlyServiceModule(object):
                 'backends': self.module.params['backends'],
                 'cache_settings': self.module.params['cache_settings'],
                 'conditions': self.module.params['conditions'],
+                'directors': self.module.params['directors'],
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
                 'response_objects': self.module.params['response_objects'],
