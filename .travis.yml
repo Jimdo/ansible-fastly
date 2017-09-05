@@ -12,11 +12,8 @@ addons:
     - python-pip
 
 install:
-  # Install vcrpy
-  - pip install vcrpy
-
-  # Install ansible
-  - pip install ansible
+  # Install dependencies
+  - pip install -r requirements.txt
 
   # Check ansible version
   - ansible --version
