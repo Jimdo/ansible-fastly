@@ -392,9 +392,9 @@ class FastlyHealthcheck(FastlyObject):
         'initial':           dict(required=False, type='int', default=None),
         'method':            dict(required=False, type='str', default='HEAD'),
         'path':              dict(required=False, type='str', default='/'),
-        'threshold':         dict(required=True,  type='int', default=None),
+        'threshold':         dict(required=False, type='int', default=None),
         'timeout':           dict(required=False, type='int', default=None),
-        'window':            dict(required=True,  type='int', default=None),
+        'window':            dict(required=False, type='int', default=None),
     }
     sort_key = lambda f: f.name
 
