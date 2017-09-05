@@ -126,8 +126,10 @@ EXAMPLES = '''
 
 import httplib
 import urllib
+import json
+import os
 
-from ansible.module_utils.basic import *
+from ansible.module_utils.basic import AnsibleModule
 
 
 class FastlyResponse(object):
@@ -184,14 +186,14 @@ class FastlyObject(object):
             except ValueError:
                 raise FastlyValidationError(self.__class__.__name__,
                                             "Field '%s' with value '%s' couldn't be converted to integer" % (
-                                            param_name, value))
+                                                param_name, value))
         elif param_type == 'int':
             try:
                 value = int(value) if value is not None else default
             except ValueError:
                 raise FastlyValidationError(self.__class__.__name__,
                                             "Field '%s' with value '%s' couldn't be converted to integer" % (
-                                            param_name, value))
+                                                param_name, value))
         elif param_type == 'bool':
             try:
                 value = bool(value)
@@ -219,11 +221,13 @@ class FastlyDomain(FastlyObject):
         'name': dict(required=True, type='str', default=None),
         'comment': dict(required=False, type='str', default='')
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
         self.comment = self.read_config(config, validate_choices, 'comment')
+
+    def sort_key(f):
+        return f.name
 
 
 class FastlyBackend(FastlyObject):
@@ -237,7 +241,6 @@ class FastlyBackend(FastlyObject):
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'shield': dict(required=False, type='str', default=None, exclude_empty_str=True)
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
@@ -249,6 +252,9 @@ class FastlyBackend(FastlyObject):
         self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
         self.shield = self.read_config(config, validate_choices, 'shield')
 
+    def sort_key(f):
+        return f.name
+
 
 class FastlyCacheSettings(FastlyObject):
     schema = {
@@ -257,13 +263,15 @@ class FastlyCacheSettings(FastlyObject):
         'cache_condition': dict(required=False, type='str', default=''),
         'stale_ttl': dict(required=False, type='int', default=0)
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
         self.action = self.read_config(config, validate_choices, 'action')
         self.cache_condition = self.read_config(config, validate_choices, 'cache_condition')
         self.stale_ttl = self.read_config(config, validate_choices, 'stale_ttl')
+
+    def sort_key(f):
+        return f.name
 
 
 class FastlyCondition(FastlyObject):
@@ -275,7 +283,6 @@ class FastlyCondition(FastlyObject):
         'type': dict(required=True, type='str', default=None,
                      choices=['REQUEST', 'PREFETCH', 'CACHE', 'RESPONSE']),
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
@@ -284,29 +291,34 @@ class FastlyCondition(FastlyObject):
         self.statement = self.read_config(config, validate_choices, 'statement')
         self.type = self.read_config(config, validate_choices, 'type')
 
+    def sort_key(f):
+        return f.name
+
 
 class FastlyDirector(FastlyObject):
     schema = {
-        'name':     dict(required=True,  type='str',  default=None),
+        'name': dict(required=True, type='str', default=None),
         'backends': dict(required=False, type='list', default=None),
-        'capacity': dict(required=False, type='int',  default=100),
-        'comment':  dict(required=False, type='str',  default=''),
-        'quorum':   dict(required=False, type='int',  default=75),
-        'shield':   dict(required=False, type='str',  default=None),
-        'type':     dict(required=False, type='int',  default=1),
-        'retries':  dict(required=False, type='int',  default=5)
+        'capacity': dict(required=False, type='int', default=100),
+        'comment': dict(required=False, type='str', default=''),
+        'quorum': dict(required=False, type='int', default=75),
+        'shield': dict(required=False, type='str', default=None),
+        'type': dict(required=False, type='int', default=1),
+        'retries': dict(required=False, type='int', default=5)
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
-        self.name     = self.read_config(config, validate_choices, 'name')
+        self.name = self.read_config(config, validate_choices, 'name')
         self.backends = self.read_config(config, validate_choices, 'backends')
         self.capacity = self.read_config(config, validate_choices, 'capacity')
-        self.comment  = self.read_config(config, validate_choices, 'comment')
-        self.quorum   = self.read_config(config, validate_choices, 'quorum')
-        self.shield   = self.read_config(config, validate_choices, 'shield')
-        self.type     = self.read_config(config, validate_choices, 'type')
-        self.retries  = self.read_config(config, validate_choices, 'retries')
+        self.comment = self.read_config(config, validate_choices, 'comment')
+        self.quorum = self.read_config(config, validate_choices, 'quorum')
+        self.shield = self.read_config(config, validate_choices, 'shield')
+        self.type = self.read_config(config, validate_choices, 'type')
+        self.retries = self.read_config(config, validate_choices, 'retries')
+
+    def sort_key(f):
+        return f.name
 
 
 class FastlyGzip(FastlyObject):
@@ -316,13 +328,15 @@ class FastlyGzip(FastlyObject):
         'content_types': dict(required=False, type='str', default=''),
         'extensions': dict(required=False, type='str', default=''),
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
         self.cache_condition = self.read_config(config, validate_choices, 'cache_condition')
         self.content_types = self.read_config(config, validate_choices, 'content_types')
         self.extensions = self.read_config(config, validate_choices, 'extensions')
+
+    def sort_key(f):
+        return f.name
 
 
 class FastlyHeader(FastlyObject):
@@ -342,7 +356,6 @@ class FastlyHeader(FastlyObject):
         'type': dict(required=True, type='str', default=None,
                      choices=['request', 'fetch', 'cache', 'response'])
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.action = self.read_config(config, validate_choices, 'action')
@@ -358,6 +371,9 @@ class FastlyHeader(FastlyObject):
         self.substitution = self.read_config(config, validate_choices, 'substitution')
         self.type = self.read_config(config, validate_choices, 'type')
 
+    def sort_key(f):
+        return f.name
+
 
 class FastlyResponseObject(FastlyObject):
     schema = {
@@ -366,13 +382,15 @@ class FastlyResponseObject(FastlyObject):
         'response': dict(required=False, type='str', default='Ok'),
         'status': dict(required=False, type='intstr', default='200')
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
         self.request_condition = self.read_config(config, validate_choices, 'request_condition')
         self.response = self.read_config(config, validate_choices, 'response')
         self.status = self.read_config(config, validate_choices, 'status')
+
+    def sort_key(f):
+        return f.name
 
 
 class FastlyVclSnippet(FastlyObject):
@@ -383,7 +401,6 @@ class FastlyVclSnippet(FastlyObject):
         'content': dict(required=True, type='str', default=None),
         'priority': dict(required=False, type='int', default=100)
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
@@ -391,6 +408,9 @@ class FastlyVclSnippet(FastlyObject):
         self.type = self.read_config(config, validate_choices, 'type')
         self.content = self.read_config(config, validate_choices, 'content')
         self.priority = self.read_config(config, validate_choices, 'priority')
+
+    def sort_key(f):
+        return f.name
 
 
 class FastlySettings(FastlyObject):
@@ -408,7 +428,7 @@ class FastlySettings(FastlyObject):
 
 
 class FastlyConfiguration(object):
-    def __init__(self, configuration, validate_choices = True):
+    def __init__(self, configuration, validate_choices=True):
         self.domains = []
         self.backends = []
         self.cache_settings = []
@@ -461,15 +481,15 @@ class FastlyConfiguration(object):
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
-               and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
-               and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
-               and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
-               and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
-               and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
-               and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
-               and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
-               and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
-               and self.settings == other.settings
+            and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
+            and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
+            and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
+            and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
+            and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
+            and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
+            and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
+            and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
+            and self.settings == other.settings
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -660,8 +680,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating VCL snippet '%s' for service %s, version %s (%s)" % (vcl_snippet['name'],
-                service_id, version, response.payload['detail']))
+            raise Exception("Error creating VCL snippet '%s' for service %s, version %s (%s)" % (vcl_snippet['name'], service_id, version, response.payload['detail']))
 
     def create_settings(self, service_id, version, settings):
         response = self._request('/service/%s/version/%s/settings' % (service_id, version), 'PUT', settings)
