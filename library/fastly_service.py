@@ -236,27 +236,27 @@ class FastlyDomain(FastlyObject):
 
 class FastlyBackend(FastlyObject):
     schema = {
-        'name':              dict(required=True,  type='str', default=None),
-        'port':              dict(required=False, type='int', default=80),
-        'address':           dict(required=True,  type='str', default=None),
+        'name': dict(required=True, type='str', default=None),
+        'port': dict(required=False, type='int', default=80),
+        'address': dict(required=True, type='str', default=None),
         'request_condition': dict(required=False, type='str', default=''),
-        'ssl_hostname':      dict(required=False, type='str', default=None),
-        'ssl_ca_cert':       dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'ssl_hostname': dict(required=False, type='str', default=None),
+        'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
-        'shield':            dict(required=False, type='str', default=None, exclude_empty_str=True),
-        'healthcheck':       dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'shield': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'healthcheck': dict(required=False, type='str', default=None, exclude_empty_str=True),
     }
 
     def __init__(self, config, validate_choices):
-        self.name              = self.read_config(config, validate_choices, 'name')
-        self.port              = self.read_config(config, validate_choices, 'port')
-        self.address           = self.read_config(config, validate_choices, 'address')
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.port = self.read_config(config, validate_choices, 'port')
+        self.address = self.read_config(config, validate_choices, 'address')
         self.request_condition = self.read_config(config, validate_choices, 'request_condition')
-        self.ssl_hostname      = self.read_config(config, validate_choices, 'ssl_hostname')
-        self.ssl_ca_cert       = self.read_config(config, validate_choices, 'ssl_ca_cert')
+        self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
+        self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
         self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
-        self.shield            = self.read_config(config, validate_choices, 'shield')
-        self.healthcheck       = self.read_config(config, validate_choices, 'healthcheck')
+        self.shield = self.read_config(config, validate_choices, 'shield')
+        self.healthcheck = self.read_config(config, validate_choices, 'healthcheck')
 
     def sort_key(f):
         return f.name
@@ -383,34 +383,36 @@ class FastlyHeader(FastlyObject):
 
 class FastlyHealthcheck(FastlyObject):
     schema = {
-        'name':              dict(required=True,  type='str', default=None),
-        'check_interval':    dict(required=False, type='int', default=None),
-        'comment':           dict(required=False, type='str', default=''),
+        'name': dict(required=True, type='str', default=None),
+        'check_interval': dict(required=False, type='int', default=None),
+        'comment': dict(required=False, type='str', default=''),
         'expected_response': dict(required=False, type='int', default='200'),
-        'host':              dict(required=True,  type='str', default=None),
-        'http_version':      dict(required=False, type='str', default='1.1'),
-        'initial':           dict(required=False, type='int', default=None),
-        'method':            dict(required=False, type='str', default='HEAD'),
-        'path':              dict(required=False, type='str', default='/'),
-        'threshold':         dict(required=False, type='int', default=None),
-        'timeout':           dict(required=False, type='int', default=None),
-        'window':            dict(required=False, type='int', default=None),
+        'host': dict(required=True, type='str', default=None),
+        'http_version': dict(required=False, type='str', default='1.1'),
+        'initial': dict(required=False, type='int', default=None),
+        'method': dict(required=False, type='str', default='HEAD'),
+        'path': dict(required=False, type='str', default='/'),
+        'threshold': dict(required=False, type='int', default=None),
+        'timeout': dict(required=False, type='int', default=None),
+        'window': dict(required=False, type='int', default=None),
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
-        self.name              = self.read_config(config, validate_choices, 'name')
-        self.check_interval    = self.read_config(config, validate_choices, 'check_interval')
-        self.comment           = self.read_config(config, validate_choices, 'comment')
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.check_interval = self.read_config(config, validate_choices, 'check_interval')
+        self.comment = self.read_config(config, validate_choices, 'comment')
         self.expected_response = self.read_config(config, validate_choices, 'expected_response')
-        self.host              = self.read_config(config, validate_choices, 'host')
-        self.http_version      = self.read_config(config, validate_choices, 'http_version')
-        self.initial           = self.read_config(config, validate_choices, 'initial')
-        self.method            = self.read_config(config, validate_choices, 'method')
-        self.path              = self.read_config(config, validate_choices, 'path')
-        self.threshold         = self.read_config(config, validate_choices, 'threshold')
-        self.timeout           = self.read_config(config, validate_choices, 'timeout')
-        self.window            = self.read_config(config, validate_choices, 'window')
+        self.host = self.read_config(config, validate_choices, 'host')
+        self.http_version = self.read_config(config, validate_choices, 'http_version')
+        self.initial = self.read_config(config, validate_choices, 'initial')
+        self.method = self.read_config(config, validate_choices, 'method')
+        self.path = self.read_config(config, validate_choices, 'path')
+        self.threshold = self.read_config(config, validate_choices, 'threshold')
+        self.timeout = self.read_config(config, validate_choices, 'timeout')
+        self.window = self.read_config(config, validate_choices, 'window')
+
+    def sort_key(f):
+        return f.name
 
 
 class FastlyResponseObject(FastlyObject):
