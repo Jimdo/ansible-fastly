@@ -24,6 +24,8 @@ install:
   - ln -snf $PWD ../Jimdo.fastly
 
 script:
+  # Check source code
+  - flake8 library
   # Run integration test
   - FASTLY_API_KEY=test python -m unittest discover tests
   # Basic role syntax check
