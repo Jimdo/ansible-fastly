@@ -386,7 +386,7 @@ class FastlyHealthcheck(FastlyObject):
         'name': dict(required=True, type='str', default=None),
         'check_interval': dict(required=False, type='int', default=None),
         'comment': dict(required=False, type='str', default=''),
-        'expected_response': dict(required=False, type='int', default='200'),
+        'expected_response': dict(required=False, type='int', default=200),
         'host': dict(required=True, type='str', default=None),
         'http_version': dict(required=False, type='str', default='1.1'),
         'initial': dict(required=False, type='int', default=None),
