@@ -46,6 +46,10 @@ options:
         required: false
         description:
             - List of headers to manipulate for each request
+    healthchecks:
+        required: false
+        description:
+            - List of healthchecks to manipulate for each request
     response_objects:
         required: false
         description:
@@ -239,7 +243,8 @@ class FastlyBackend(FastlyObject):
         'ssl_hostname': dict(required=False, type='str', default=None),
         'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
-        'shield': dict(required=False, type='str', default=None, exclude_empty_str=True)
+        'shield': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'healthcheck': dict(required=False, type='str', default=None, exclude_empty_str=True),
     }
 
     def __init__(self, config, validate_choices):
@@ -251,6 +256,7 @@ class FastlyBackend(FastlyObject):
         self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
         self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
         self.shield = self.read_config(config, validate_choices, 'shield')
+        self.healthcheck = self.read_config(config, validate_choices, 'healthcheck')
 
     def sort_key(f):
         return f.name
@@ -375,6 +381,40 @@ class FastlyHeader(FastlyObject):
         return f.name
 
 
+class FastlyHealthcheck(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'check_interval': dict(required=False, type='int', default=None),
+        'comment': dict(required=False, type='str', default=''),
+        'expected_response': dict(required=False, type='int', default=200),
+        'host': dict(required=True, type='str', default=None),
+        'http_version': dict(required=False, type='str', default='1.1'),
+        'initial': dict(required=False, type='int', default=None),
+        'method': dict(required=False, type='str', default='HEAD'),
+        'path': dict(required=False, type='str', default='/'),
+        'threshold': dict(required=False, type='int', default=None),
+        'timeout': dict(required=False, type='int', default=None),
+        'window': dict(required=False, type='int', default=None),
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.check_interval = self.read_config(config, validate_choices, 'check_interval')
+        self.comment = self.read_config(config, validate_choices, 'comment')
+        self.expected_response = self.read_config(config, validate_choices, 'expected_response')
+        self.host = self.read_config(config, validate_choices, 'host')
+        self.http_version = self.read_config(config, validate_choices, 'http_version')
+        self.initial = self.read_config(config, validate_choices, 'initial')
+        self.method = self.read_config(config, validate_choices, 'method')
+        self.path = self.read_config(config, validate_choices, 'path')
+        self.threshold = self.read_config(config, validate_choices, 'threshold')
+        self.timeout = self.read_config(config, validate_choices, 'timeout')
+        self.window = self.read_config(config, validate_choices, 'window')
+
+    def sort_key(f):
+        return f.name
+
+
 class FastlyResponseObject(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
@@ -430,6 +470,7 @@ class FastlySettings(FastlyObject):
 class FastlyConfiguration(object):
     def __init__(self, configuration, validate_choices=True):
         self.domains = []
+        self.healthchecks = []
         self.backends = []
         self.cache_settings = []
         self.conditions = []
@@ -443,6 +484,10 @@ class FastlyConfiguration(object):
         if 'domains' in configuration and configuration['domains'] is not None:
             for domain in configuration['domains']:
                 self.domains.append(FastlyDomain(domain, validate_choices))
+
+        if 'healthchecks' in configuration and configuration['healthchecks'] is not None:
+            for healthcheck in configuration['healthchecks']:
+                self.healthchecks.append(FastlyHealthcheck(healthcheck, validate_choices))
 
         if 'backends' in configuration and configuration['backends'] is not None:
             for backend in configuration['backends']:
@@ -481,6 +526,7 @@ class FastlyConfiguration(object):
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
+            and sorted(self.healthchecks, key=FastlyHealthcheck.sort_key) == sorted(other.healthchecks, key=FastlyHealthcheck.sort_key) \
             and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
             and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
             and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
@@ -606,7 +652,15 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating domain for for service %s, version %s (%s)" % (
+            raise Exception("Error creating domain for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
+    def create_healthcheck(self, service_id, version, healthcheck):
+        response = self._request('/service/%s/version/%s/healthcheck' % (service_id, version), 'POST', healthcheck)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating healthcheck for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def create_backend(self, service_id, version, backend):
@@ -614,7 +668,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating backend for for service %s, version %s (%s)" % (
+            raise Exception("Error creating backend for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def create_director(self, service_id, version, director):
@@ -735,6 +789,10 @@ class FastlyStateEnforcer(object):
         for domain in configuration.domains:
             self.client.create_domain(service_id, version_number, domain)
 
+        # create healthchecks before backends
+        for healthcheck in configuration.healthchecks:
+            self.client.create_healthcheck(service_id, version_number, healthcheck)
+
         # create conditions before dependencies (e.g. cache_settings)
         for condition in configuration.conditions:
             self.client.create_condition(service_id, version_number, condition)
@@ -791,6 +849,7 @@ class FastlyServiceModule(object):
                 fastly_api_key=dict(no_log=True, type='str'),
                 name=dict(required=True, type='str'),
                 activate_new_version=dict(required=False, type='bool', default=True),
+                healthchecks=dict(default=None, required=False, type='list'),
                 domains=dict(default=None, required=True, type='list'),
                 backends=dict(default=None, required=True, type='list'),
                 cache_settings=dict(default=None, required=False, type='list'),
@@ -818,6 +877,7 @@ class FastlyServiceModule(object):
         try:
             return FastlyConfiguration({
                 'domains': self.module.params['domains'],
+                'healthchecks': self.module.params['healthchecks'],
                 'backends': self.module.params['backends'],
                 'cache_settings': self.module.params['cache_settings'],
                 'conditions': self.module.params['conditions'],

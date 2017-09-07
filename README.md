@@ -26,6 +26,7 @@ $ ansible-galaxy install Jimdo.fastly
 | directors            | false    | List of directors                                                                             |         |
 | gzips                | false    | List of gzip configurations                                                                   |         |
 | headers              | false    | List of headers to manipulate for each request                                                |         |
+| healthchecks         | false    | List of healthchecks for the backend purpose                                                  |         |
 | response_objects     | false    | List of response objects                                                                      |         |
 | settings             | false    | Settings object                                                                               |         |
 | vcl_snippets         | false    | List of VCL snippets                                                                          |         |
@@ -43,6 +44,7 @@ $ ansible-galaxy install Jimdo.fastly
 | ssl_ca_cert       | false    | string                                                  |         |
 | ssl_cert_hostname | false    | string                                                  |         |
 | shield            | false    | string                                                  |         |
+| healthcheck       | false    | string                                                  |         |
 
 ### Cache Settings
 
@@ -100,6 +102,25 @@ $ ansible-galaxy install Jimdo.fastly
 | src                | true     | string                                                    |         |
 | substitution       | false    | string                                                    |         |
 | type               | true     | enum ('request', 'fetch', 'cache', 'response')            |         |
+
+### Healthcheck
+
+[Fastly documentation](https://docs.fastly.com/api/config#healthcheck)
+
+| Field              | Required | Type                                                      | Default |
+|:-------------------|:---------|:----------------------------------------------------------|:--------|
+| name               | true     | string                                                    |         |
+| check_interval     | false    | integer                                                   |         |
+| comment            | false    | string                                                    | ''      |
+| expected_response  | false    | integer                                                   | 200     |
+| host               | true     | string                                                    |         |
+| http_version       | false    | string                                                    | 1.1     |
+| initial            | false    | integer                                                   |         |
+| method             | false    | string                                                    | HEAD    |
+| path               | false    | string                                                    | '/'     |
+| threshold          | false    | integer                                                   |         |
+| timeout            | false    | integer                                                   |         |
+| window             | false    | integer                                                   |         |
 
 ### Response Object
 
@@ -179,6 +200,6 @@ FASTLY_API_KEY=some_secret python -m unittest discover tests
 ```
 
 #### Updating the VCR cassettes
-[VCR.py](https://vcrpy.readthedocs.io/en/latest/) is used in the tests for mocking HTTP requests. 
+[VCR.py](https://vcrpy.readthedocs.io/en/latest/) is used in the tests for mocking HTTP requests.
 
 In order to update the cassettes just delete the `tests/fixtures/cassettes` directory and run the tests as usual. You have to use a valid Fastly API key for the recording to work.
