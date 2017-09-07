@@ -27,10 +27,11 @@ class TestFastlyDirectors(TestCommon):
                 'check_interval'    : 15000,
                 'timeout'           : 5000,
             }],
-        })
-
-        healthcheck_configuration['backends'][0].update({
-            'healthcheck' : 'test_healthcheck',
+            'backends': [{
+                'name': 'localhost',
+                'address': '127.0.0.1',
+                'healthcheck' : 'test_healthcheck'
+            }],
         })
 
         configuration = FastlyConfiguration(healthcheck_configuration)
