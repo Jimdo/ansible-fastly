@@ -420,7 +420,9 @@ class FastlyResponseObject(FastlyObject):
         'name': dict(required=True, type='str', default=None),
         'request_condition': dict(required=False, type='str', default=''),
         'response': dict(required=False, type='str', default='Ok'),
-        'status': dict(required=False, type='intstr', default='200')
+        'status': dict(required=False, type='intstr', default='200'),
+        'content': dict(required=False, type='str', default=''),
+        'content_type': dict(required=False, type='str', default='')
     }
 
     def __init__(self, config, validate_choices):
@@ -428,6 +430,8 @@ class FastlyResponseObject(FastlyObject):
         self.request_condition = self.read_config(config, validate_choices, 'request_condition')
         self.response = self.read_config(config, validate_choices, 'response')
         self.status = self.read_config(config, validate_choices, 'status')
+        self.content = self.read_config(config, validate_choices, 'content')
+        self.content_type = self.read_config(config, validate_choices, 'content_type')
 
     def sort_key(f):
         return f.name
