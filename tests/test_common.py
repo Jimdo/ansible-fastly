@@ -8,7 +8,7 @@ import vcr
 
 class TestCommon(unittest.TestCase):
     FASTLY_TEST_SERVICE = 'Fastly Ansible Module Test'
-    FASTLY_TEST_DOMAIN = 'example7000.com'
+    FASTLY_TEST_DOMAIN = 'example8000.com'
 
     enforcer = None
     client = None
