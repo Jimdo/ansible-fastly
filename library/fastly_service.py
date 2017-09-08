@@ -133,7 +133,7 @@ import urllib
 import json
 import os
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import *  # noqa: F403
 
 
 class FastlyResponse(object):
@@ -847,7 +847,7 @@ class FastlyStateEnforcer(object):
 
 class FastlyServiceModule(object):
     def __init__(self):
-        self.module = AnsibleModule(
+        self.module = AnsibleModule(  # noqa: F405
             argument_spec=dict(
                 state=dict(default='present', choices=['present', 'absent'], type='str'),
                 fastly_api_key=dict(no_log=True, type='str'),
