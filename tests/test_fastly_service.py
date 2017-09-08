@@ -358,29 +358,6 @@ class TestFastly(unittest.TestCase):
         service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
         self.assertEqual(service.active_version.configuration, configuration)
 
-    @my_vcr.use_cassette()
-    def test_fastly_response_object_status_not_required(self):
-        configuration =  FastlyConfiguration({
-            'domains': [{
-                'name': self.FASTLY_TEST_DOMAIN,
-            }],
-            'backends': [{
-                'name': 'localhost',
-                'address': '127.0.0.1'
-            }],
-            'headers': [{
-                'name': 'Set Location header',
-                'dst': 'http.Location',
-                'type': 'response',
-                'src': '"https://u.jimcdn.com" req.url.path',
-            }],
-            'response_objects': [{
-                'name': 'Set 200 status code',
-            }]
-        })
-        service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
-        self.assertEqual(service.active_version.configuration, configuration)
-
 if __name__ == '__main__':
     unittest.main()
 
