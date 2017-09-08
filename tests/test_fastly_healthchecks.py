@@ -8,7 +8,7 @@ from test_common import TestCommon
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'library'))
 from fastly_service import FastlyConfiguration
 
-class TestFastlyDirectors(TestCommon):
+class TestFastlyHealthchecks(TestCommon):
 
     @TestCommon.vcr.use_cassette()
     def test_fastly_healthchecks(self):
