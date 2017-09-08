@@ -132,6 +132,8 @@ $ ansible-galaxy install Jimdo.fastly
 | request_condition | false    | string                                                    |         |
 | response          | false    | string                                                    | Ok      |
 | status            | false    | integer                                                   | 200     |
+| content           | false    | string                                                    |         |
+| content_type      | false    | string                                                    |         |
 
 ### VCL Snippets
 
