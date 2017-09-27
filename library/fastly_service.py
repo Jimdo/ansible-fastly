@@ -739,7 +739,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating cache_settings for for service %s, version %s (%s)" % (
+            raise Exception("Error creating cache_settings for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def create_condition(self, service_id, version, condition):
@@ -747,7 +747,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating condition for for service %s, version %s (%s)" % (
+            raise Exception("Error creating condition for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def create_gzip(self, service_id, version, gzip):
@@ -756,7 +756,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating gzip for for service %s, version %s (%s)" % (
+            raise Exception("Error creating gzip for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def create_header(self, service_id, version, header):
@@ -764,7 +764,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating header for for service %s, version %s (%s)" % (
+            raise Exception("Error creating header for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def create_request_setting(self, service_id, version, request_setting):
@@ -773,7 +773,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating request setting for for service %s, version %s (%s)" % (
+            raise Exception("Error creating request setting for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def create_response_object(self, service_id, version, response_object):
@@ -782,7 +782,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating response object for for service %s, version %s (%s)" % (
+            raise Exception("Error creating response object for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def create_vcl_snippet(self, service_id, version, vcl_snippet):
@@ -798,7 +798,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating settings for for service %s, version %s (%s)" % (
+            raise Exception("Error creating settings for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
 
