@@ -27,6 +27,7 @@ $ ansible-galaxy install Jimdo.fastly
 | gzips                | false    | List of gzip configurations                                                                   |         |
 | headers              | false    | List of headers to manipulate for each request                                                |         |
 | healthchecks         | false    | List of healthchecks for the backend purpose                                                  |         |
+| request_settings     | false    | List of request settings                                                                      |         |
 | response_objects     | false    | List of response objects                                                                      |         |
 | settings             | false    | Settings object                                                                               |         |
 | vcl_snippets         | false    | List of VCL snippets                                                                          |         |
@@ -81,7 +82,7 @@ $ ansible-galaxy install Jimdo.fastly
 | comment   | false    | string                                                  | ''      |
 | quorum    | false    | integer                                                 | 75      |
 | shield    | false    | string                                                  |         |
-| type      | false    | integer                                                 | 1       |
+| type      | false    | integer (one of [1,2,3,4])                              | 1       |
 | retries   | false    | integer                                                 | 5       |
 
 ### Header
@@ -121,6 +122,25 @@ $ ansible-galaxy install Jimdo.fastly
 | threshold          | false    | integer                                                   |         |
 | timeout            | false    | integer                                                   |         |
 | window             | false    | integer                                                   |         |
+
+### Request Setting
+
+[Fastly documentation](https://docs.fastly.com/api/config#request_setting)
+
+| Field             | Required | Type                                                         | Default |
+|:------------------|:---------|:-------------------------------------------------------------|:--------|
+| name              | true     | string                                                       |         |
+| request_condition | false    | string                                                       |         |
+| action            | false    | enum ('lookup', 'pass')                                      |         |
+| xff               | false    | enum ('clear', 'leave', 'append', 'append_all', 'overwrite') |         |
+| hash_keys         | false    | string                                                       |         |
+| default_host      | false    | string                                                       |         |
+| max_stale_age     | false    | integer                                                      | 0       |
+| force_miss        | false    | integer                                                      | 0       |
+| force_ssl         | false    | integer                                                      | 0       |
+| timer_support     | false    | integer                                                      | 0       |
+| geo_headers       | false    | integer                                                      | 0       |
+| bypass_busy_wait  | false    | integer                                                      | 0       |
 
 ### Response Object
 
