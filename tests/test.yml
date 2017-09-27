@@ -29,6 +29,18 @@
             src: '"http://test3.example.net" req.url.path'
             ignore_if_set: 0
             priority: 10
+        request_settings:
+          - name: Request Settings
+            action: pass
+            xff: append
+            hash_keys: 'req.url,req.http.host,req.http.Fastly-SSL'
+            max_stale_age: 30
+            force_miss: 1
+            force_ssl: 1
+            timer_support: 1
+            geo_headers: 1
+            bypass_busy_wait: 1
+            default_host: 'example.net'
         response_objects:
           - name: Set 302 status code
             status: 302

@@ -12,14 +12,14 @@ class TestFastlyResponseObject(TestCommon):
 
     @TestCommon.vcr.use_cassette()
     def test_fastly_response_object_defaults(self):
-        healthcheck_configuration = self.minimal_configuration.copy()
-        healthcheck_configuration.update({
+        response_object_configuration = self.minimal_configuration.copy()
+        response_object_configuration.update({
             'response_objects': [{
                 'name': 'Set 200 status code',
             }]
         })
 
-        configuration = FastlyConfiguration(healthcheck_configuration)
+        configuration = FastlyConfiguration(response_object_configuration)
         service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
 
         self.assertEqual(service.active_version.configuration.response_objects[0].name, 'Set 200 status code')
@@ -34,8 +34,8 @@ class TestFastlyResponseObject(TestCommon):
 
     @TestCommon.vcr.use_cassette()
     def test_fastly_response_object_content_content_type(self):
-        healthcheck_configuration = self.minimal_configuration.copy()
-        healthcheck_configuration.update({
+        response_object_configuration = self.minimal_configuration.copy()
+        response_object_configuration.update({
             'response_objects': [{
                 'name': 'Set 200 status code',
                 'status': 200,
@@ -45,7 +45,7 @@ class TestFastlyResponseObject(TestCommon):
             }]
         })
 
-        configuration = FastlyConfiguration(healthcheck_configuration)
+        configuration = FastlyConfiguration(response_object_configuration)
         service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
 
         self.assertEqual(service.active_version.configuration.response_objects[0].name, 'Set 200 status code')

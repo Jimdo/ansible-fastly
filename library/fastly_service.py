@@ -50,6 +50,10 @@ options:
         required: false
         description:
             - List of healthchecks to manipulate for each request
+    request_settings:
+        required: false
+        description:
+            - List of request settings
     response_objects:
         required: false
         description:
@@ -415,6 +419,40 @@ class FastlyHealthcheck(FastlyObject):
         return f.name
 
 
+class FastlyRequestSetting(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'request_condition': dict(required=False, type='str', default=''),
+        'force_miss': dict(required=False, type='int', default=0),
+        'force_ssl': dict(required=False, type='int', default=0),
+        'action': dict(required=False, type='str', default=None, choices=['lookup', 'pass', None]),
+        'bypass_busy_wait': dict(required=False, type='int', default=0),
+        'max_stale_age': dict(required=False, type='int', default=0),
+        'hash_keys': dict(required=False, type='str', default=''),
+        'xff': dict(required=False, type='str', default=None, choices=['clear', 'leave', 'append', 'append_all', 'overwrite', None]),
+        'timer_support': dict(required=False, type='int', default=0),
+        'geo_headers': dict(required=False, type='int', default=0),
+        'default_host': dict(required=False, type='str', default='')
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.request_condition = self.read_config(config, validate_choices, 'request_condition')
+        self.force_miss = self.read_config(config, validate_choices, 'force_miss')
+        self.force_ssl = self.read_config(config, validate_choices, 'force_ssl')
+        self.action = self.read_config(config, validate_choices, 'action')
+        self.bypass_busy_wait = self.read_config(config, validate_choices, 'bypass_busy_wait')
+        self.max_stale_age = self.read_config(config, validate_choices, 'max_stale_age')
+        self.hash_keys = self.read_config(config, validate_choices, 'hash_keys')
+        self.xff = self.read_config(config, validate_choices, 'xff')
+        self.timer_support = self.read_config(config, validate_choices, 'timer_support')
+        self.geo_headers = self.read_config(config, validate_choices, 'geo_headers')
+        self.default_host = self.read_config(config, validate_choices, 'default_host')
+
+    def sort_key(f):
+        return f.name
+
+
 class FastlyResponseObject(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
@@ -482,6 +520,7 @@ class FastlyConfiguration(object):
         self.gzips = []
         self.headers = []
         self.response_objects = []
+        self.request_settings = []
         self.snippets = []
         self.settings = FastlySettings(dict(), validate_choices)
 
@@ -517,6 +556,10 @@ class FastlyConfiguration(object):
             for header in configuration['headers']:
                 self.headers.append(FastlyHeader(header, validate_choices))
 
+        if 'request_settings' in configuration and configuration['request_settings'] is not None:
+            for request_setting in configuration['request_settings']:
+                self.request_settings.append(FastlyRequestSetting(request_setting, validate_choices))
+
         if 'response_objects' in configuration and configuration['response_objects'] is not None:
             for response_object in configuration['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
@@ -537,6 +580,7 @@ class FastlyConfiguration(object):
             and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
             and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
             and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
+            and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
             and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
             and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
             and self.settings == other.settings
@@ -723,6 +767,15 @@ class FastlyClient(object):
             raise Exception("Error creating header for for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def create_request_setting(self, service_id, version, request_setting):
+        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'POST',
+                                 request_setting)
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating request setting for for service %s, version %s (%s)" % (
+                service_id, version, response.payload['detail']))
+
     def create_response_object(self, service_id, version, response_object):
         response = self._request('/service/%s/version/%s/response_object' % (service_id, version), 'POST',
                                  response_object)
@@ -817,6 +870,9 @@ class FastlyStateEnforcer(object):
         for header in configuration.headers:
             self.client.create_header(service_id, version_number, header)
 
+        for request_setting in configuration.request_settings:
+            self.client.create_request_setting(service_id, version_number, request_setting)
+
         for response_object in configuration.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
@@ -861,6 +917,7 @@ class FastlyServiceModule(object):
                 directors=dict(default=None, required=False, type='list'),
                 gzips=dict(default=None, required=False, type='list'),
                 headers=dict(default=None, required=False, type='list'),
+                request_settings=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
                 vcl_snippets=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
@@ -888,6 +945,7 @@ class FastlyServiceModule(object):
                 'directors': self.module.params['directors'],
                 'gzips': self.module.params['gzips'],
                 'headers': self.module.params['headers'],
+                'request_settings': self.module.params['request_settings'],
                 'response_objects': self.module.params['response_objects'],
                 'snippets': self.module.params['vcl_snippets'],
                 'settings': self.module.params['settings']
