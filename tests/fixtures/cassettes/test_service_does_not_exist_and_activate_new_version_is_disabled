@@ -6,32 +6,32 @@ interactions:
     method: GET
     uri: https://api.fastly.com/service/search?name=Jimdo%20Fastly%20Ansible%20Module%20Test
   response:
-    body: {string: !!python/unicode '{"name":"Jimdo Fastly Ansible Module Test","deleted_at":null,"versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"2oIUnhtC0pOCfxJbZ4gZMi","staging":false,"created_at":"2017-09-27T00:39:46+00:00","deleted_at":null,"comment":"","updated_at":"2017-09-27T00:39:46+00:00","deployed":false},{"testing":false,"number":2,"service_id":"2oIUnhtC0pOCfxJbZ4gZMi","staging":false,"deployed":false,"locked":true,"active":true,"comment":""}],"created_at":"2017-09-27T00:39:46+00:00","customer_id":"1z3ENiEMpKOrsGqTBLhkF2","comment":"","updated_at":"2017-09-27T00:39:46+00:00","id":"2oIUnhtC0pOCfxJbZ4gZMi"}'}
+    body: {string: !!python/unicode '{"name":"Jimdo Fastly Ansible Module Test","deleted_at":null,"versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"6Hg9tcdvWWA00d26tuuhHo","staging":false,"created_at":"2017-10-10T10:35:59Z","deleted_at":null,"comment":"","updated_at":"2017-10-10T10:35:59Z","deployed":false},{"testing":false,"number":2,"service_id":"6Hg9tcdvWWA00d26tuuhHo","staging":false,"deployed":false,"locked":true,"active":true,"comment":""}],"created_at":"2017-10-10T10:35:59Z","customer_id":"1z3ENiEMpKOrsGqTBLhkF2","comment":"","updated_at":"2017-10-10T10:35:59Z","id":"6Hg9tcdvWWA00d26tuuhHo"}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['622']
+      content-length: ['602']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:51 GMT']
+      date: ['Tue, 10 Oct 2017 10:36:06 GMT']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8321-YYZ']
-      x-timer: ['S1506472792.556311,VS0,VE72']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4126-AMS']
+      x-timer: ['S1507631766.679255,VS0,VE433']
     status: {code: 200, message: OK}
 - request:
     body: null
     headers:
       Content-Type: [application/json]
     method: GET
-    uri: https://api.fastly.com/service/2oIUnhtC0pOCfxJbZ4gZMi/details
+    uri: https://api.fastly.com/service/6Hg9tcdvWWA00d26tuuhHo/details
   response:
-    body: {string: !!python/unicode '{"name":"Jimdo Fastly Ansible Module Test","deleted_at":null,"versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"2oIUnhtC0pOCfxJbZ4gZMi","staging":false,"created_at":"2017-09-27T00:39:46+00:00","deleted_at":null,"comment":"","updated_at":"2017-09-27T00:39:46+00:00","deployed":false},{"testing":false,"locked":true,"number":2,"active":true,"service_id":"2oIUnhtC0pOCfxJbZ4gZMi","staging":false,"created_at":"2017-09-27T00:39:46+00:00","deleted_at":null,"comment":"","updated_at":"2017-09-27T00:39:50+00:00","deployed":false}],"created_at":"2017-09-27T00:39:46+00:00","customer_id":"1z3ENiEMpKOrsGqTBLhkF2","comment":"","updated_at":"2017-09-27T00:39:46+00:00","id":"2oIUnhtC0pOCfxJbZ4gZMi","version":{"testing":false,"number":2,"service_id":"2oIUnhtC0pOCfxJbZ4gZMi","staging":false,"updated_at":"2017-09-27T00:39:50+00:00","deployed":false,"locked":true,"active":true,"deleted_at":null,"created_at":"2017-09-27T00:39:46+00:00","comment":"","acls":[],"backends":[{"max_tls_version":null,"ssl_ca_cert":null,"auto_loadbalance":false,"ssl_check_cert":true,"shield":null,"hostname":null,"ssl_client_cert":null,"error_threshold":0,"request_condition":"","first_byte_timeout":15000,"ssl_cert_hostname":null,"weight":100,"client_cert":null,"address":"127.0.0.1","ssl_hostname":null,"ssl_sni_hostname":null,"min_tls_version":null,"ipv6":null,"ipv4":"127.0.0.1","connect_timeout":1000,"ssl_ciphers":null,"name":"localhost","healthcheck":null,"port":80,"max_conn":200,"use_ssl":false,"comment":"","between_bytes_timeout":10000,"ssl_client_key":null}],"cache_settings":[],"conditions":[],"dictionaries":[],"directors":[],"domains":[{"comment":"test1","name":"cdn.example8000.com"}],"gzips":[],"headers":[{"priority":"10","src":"\"https://u.jimcdn.com\"
+    body: {string: !!python/unicode '{"name":"Jimdo Fastly Ansible Module Test","deleted_at":null,"versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"6Hg9tcdvWWA00d26tuuhHo","staging":false,"created_at":"2017-10-10T10:35:59Z","deleted_at":null,"comment":"","updated_at":"2017-10-10T10:35:59Z","deployed":false},{"testing":false,"locked":true,"number":2,"active":true,"service_id":"6Hg9tcdvWWA00d26tuuhHo","staging":false,"created_at":"2017-10-10T10:36:00Z","deleted_at":null,"comment":"","updated_at":"2017-10-10T10:36:04Z","deployed":false}],"created_at":"2017-10-10T10:35:59Z","customer_id":"1z3ENiEMpKOrsGqTBLhkF2","comment":"","updated_at":"2017-10-10T10:35:59Z","id":"6Hg9tcdvWWA00d26tuuhHo","version":{"testing":false,"number":2,"service_id":"6Hg9tcdvWWA00d26tuuhHo","staging":false,"updated_at":"2017-10-10T10:36:04Z","deployed":false,"locked":true,"active":true,"deleted_at":null,"created_at":"2017-10-10T10:36:00Z","comment":"","acls":[],"backends":[{"max_tls_version":null,"ssl_ca_cert":null,"auto_loadbalance":false,"ssl_check_cert":true,"shield":null,"hostname":null,"ssl_client_cert":null,"error_threshold":0,"request_condition":"","first_byte_timeout":15000,"ssl_cert_hostname":null,"weight":100,"client_cert":null,"address":"127.0.0.1","ssl_hostname":null,"ssl_sni_hostname":null,"min_tls_version":null,"ipv6":null,"ipv4":"127.0.0.1","connect_timeout":1000,"ssl_ciphers":null,"name":"localhost","healthcheck":null,"port":80,"max_conn":200,"use_ssl":false,"comment":"","between_bytes_timeout":10000,"ssl_client_key":null}],"cache_settings":[],"conditions":[],"dictionaries":[],"directors":[],"domains":[{"comment":"test1","name":"cdn.example8000.com"}],"gzips":[],"headers":[{"priority":"10","src":"\"https://u.jimcdn.com\"
         req.url.path","name":"Set Location header","substitution":"","ignore_if_set":"0","cache_condition":null,"request_condition":null,"regex":"","response_condition":null,"action":"set","type":"response","dst":"http.Location"}],"healthchecks":[],"request_settings":[],"response_objects":[{"request_condition":"","content_type":"","status":"302","response":"Ok","name":"Set
-        302 status code","content":"","cache_condition":""}],"snippets":[],"vcls":[],"wordpress":[],"settings":{"general.default_ttl":3600,"general.default_host":"","general.default_pci":0}},"active_version":{"testing":false,"number":2,"service_id":"2oIUnhtC0pOCfxJbZ4gZMi","staging":false,"updated_at":"2017-09-27T00:39:50+00:00","deployed":false,"locked":true,"active":true,"deleted_at":null,"created_at":"2017-09-27T00:39:46+00:00","comment":"","acls":[],"backends":[{"max_tls_version":null,"ssl_ca_cert":null,"auto_loadbalance":false,"ssl_check_cert":true,"shield":null,"hostname":null,"ssl_client_cert":null,"error_threshold":0,"request_condition":"","first_byte_timeout":15000,"ssl_cert_hostname":null,"weight":100,"client_cert":null,"address":"127.0.0.1","ssl_hostname":null,"ssl_sni_hostname":null,"min_tls_version":null,"ipv6":null,"ipv4":"127.0.0.1","connect_timeout":1000,"ssl_ciphers":null,"name":"localhost","healthcheck":null,"port":80,"max_conn":200,"use_ssl":false,"comment":"","between_bytes_timeout":10000,"ssl_client_key":null}],"cache_settings":[],"conditions":[],"dictionaries":[],"directors":[],"domains":[{"comment":"test1","name":"cdn.example8000.com"}],"gzips":[],"headers":[{"priority":"10","src":"\"https://u.jimcdn.com\"
+        302 status code","content":"","cache_condition":""}],"snippets":[],"vcls":[],"wordpress":[],"settings":{"general.default_ttl":3600,"general.default_host":"","general.default_pci":0}},"active_version":{"testing":false,"number":2,"service_id":"6Hg9tcdvWWA00d26tuuhHo","staging":false,"updated_at":"2017-10-10T10:36:04Z","deployed":false,"locked":true,"active":true,"deleted_at":null,"created_at":"2017-10-10T10:36:00Z","comment":"","acls":[],"backends":[{"max_tls_version":null,"ssl_ca_cert":null,"auto_loadbalance":false,"ssl_check_cert":true,"shield":null,"hostname":null,"ssl_client_cert":null,"error_threshold":0,"request_condition":"","first_byte_timeout":15000,"ssl_cert_hostname":null,"weight":100,"client_cert":null,"address":"127.0.0.1","ssl_hostname":null,"ssl_sni_hostname":null,"min_tls_version":null,"ipv6":null,"ipv4":"127.0.0.1","connect_timeout":1000,"ssl_ciphers":null,"name":"localhost","healthcheck":null,"port":80,"max_conn":200,"use_ssl":false,"comment":"","between_bytes_timeout":10000,"ssl_client_key":null}],"cache_settings":[],"conditions":[],"dictionaries":[],"directors":[],"domains":[{"comment":"test1","name":"cdn.example8000.com"}],"gzips":[],"headers":[{"priority":"10","src":"\"https://u.jimcdn.com\"
         req.url.path","name":"Set Location header","substitution":"","ignore_if_set":"0","cache_condition":null,"request_condition":null,"regex":"","response_condition":null,"action":"set","type":"response","dst":"http.Location"}],"healthchecks":[],"request_settings":[],"response_objects":[{"request_condition":"","content_type":"","status":"302","response":"Ok","name":"Set
         302 status code","content":"","cache_condition":""}],"snippets":[],"vcls":[],"wordpress":[],"settings":{"general.default_ttl":3600,"general.default_host":"","general.default_pci":0}}}'}
     headers:
@@ -39,48 +39,48 @@ interactions:
       age: ['0']
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['3933']
+      content-length: ['3883']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:51 GMT']
+      date: ['Tue, 10 Oct 2017 10:36:06 GMT']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8328-YYZ']
-      x-timer: ['S1506472792.895574,VS0,VE47']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4440-AMS']
+      x-timer: ['S1507631766.195371,VS0,VE104']
     status: {code: 200, message: OK}
 - request:
     body: null
     headers:
       Content-Type: [application/json]
     method: PUT
-    uri: https://api.fastly.com/service/2oIUnhtC0pOCfxJbZ4gZMi/version/2/deactivate
+    uri: https://api.fastly.com/service/6Hg9tcdvWWA00d26tuuhHo/version/2/deactivate
   response:
-    body: {string: !!python/unicode '{"testing":false,"locked":true,"number":2,"active":false,"service_id":"2oIUnhtC0pOCfxJbZ4gZMi","staging":false,"created_at":"2017-09-27T00:39:46+00:00","deleted_at":null,"comment":"","updated_at":"2017-09-27T00:39:50+00:00","deployed":false}'}
+    body: {string: !!python/unicode '{"testing":false,"locked":true,"number":2,"active":false,"service_id":"6Hg9tcdvWWA00d26tuuhHo","staging":false,"created_at":"2017-10-10T10:36:00Z","deleted_at":null,"comment":"","updated_at":"2017-10-10T10:36:04Z","deployed":false}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['241']
+      content-length: ['231']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:52 GMT']
-      fastly-ratelimit-remaining: ['824']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:06 GMT']
+      fastly-ratelimit-remaining: ['806']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8323-YYZ']
-      x-timer: ['S1506472792.174982,VS0,VE242']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4121-AMS']
+      x-timer: ['S1507631766.399037,VS0,VE498']
     status: {code: 200, message: OK}
 - request:
     body: null
     headers:
       Content-Type: [application/json]
     method: DELETE
-    uri: https://api.fastly.com/service/2oIUnhtC0pOCfxJbZ4gZMi
+    uri: https://api.fastly.com/service/6Hg9tcdvWWA00d26tuuhHo
   response:
     body: {string: !!python/unicode '{"status":"ok"}'}
     headers:
@@ -89,16 +89,16 @@ interactions:
       connection: [keep-alive]
       content-length: ['15']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:53 GMT']
-      fastly-ratelimit-remaining: ['823']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:07 GMT']
+      fastly-ratelimit-remaining: ['805']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8328-YYZ']
-      x-timer: ['S1506472793.298896,VS0,VE85']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4142-AMS']
+      x-timer: ['S1507631767.981830,VS0,VE440']
     status: {code: 200, message: OK}
 - request:
     body: null
@@ -111,18 +111,19 @@ interactions:
         service ''1z3ENiEMpKOrsGqTBLhkF2''-''Jimdo Fastly Ansible Module Test''"}'}
     headers:
       accept-ranges: [bytes]
+      age: ['0']
       cache-control: [no-cache]
       connection: [keep-alive]
       content-length: ['117']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:53 GMT']
+      date: ['Tue, 10 Oct 2017 10:36:07 GMT']
       status: [404 Not Found]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8327-YYZ']
-      x-timer: ['S1506472794.605079,VS0,VE48']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4144-AMS']
+      x-timer: ['S1507631768.511498,VS0,VE113']
     status: {code: 404, message: Not Found}
 - request:
     body: !!python/unicode '{"name": "Jimdo Fastly Ansible Module Test"}'
@@ -132,124 +133,126 @@ interactions:
     uri: https://api.fastly.com/service
   response:
     body: {string: !!python/unicode '{"customer_id":"1z3ENiEMpKOrsGqTBLhkF2","name":"Jimdo
-        Fastly Ansible Module Test","publish_key":"1b06e59a4921211176f48120612febf5418944a6","versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"2x7fBSkllFGFz9yN8w28KU","staging":false,"created_at":"2017-09-27T00:39:54+00:00","deleted_at":null,"comment":"","updated_at":"2017-09-27T00:39:54+00:00","deployed":false}],"deleted_at":null,"created_at":"2017-09-27T00:39:54+00:00","comment":"","updated_at":"2017-09-27T00:39:54+00:00","id":"2x7fBSkllFGFz9yN8w28KU"}'}
+        Fastly Ansible Module Test","publish_key":"b8674ae14ef8f5dfe563eefa0f7468e4f5f839fd","versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","staging":false,"created_at":"2017-10-10T10:36:08Z","deleted_at":null,"comment":"","updated_at":"2017-10-10T10:36:08Z","deployed":false}],"deleted_at":null,"created_at":"2017-10-10T10:36:08Z","comment":"","updated_at":"2017-10-10T10:36:08Z","id":"6Qoo35YqIXGAx6yAHEjh3Q"}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['538']
+      content-length: ['518']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:54 GMT']
-      fastly-ratelimit-remaining: ['822']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:08 GMT']
+      fastly-ratelimit-remaining: ['804']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8335-YYZ']
-      x-timer: ['S1506472794.923955,VS0,VE178']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4132-AMS']
+      x-timer: ['S1507631768.706013,VS0,VE383']
     status: {code: 200, message: OK}
 - request:
     body: null
     headers:
       Content-Type: [application/json]
     method: GET
-    uri: https://api.fastly.com/service/2x7fBSkllFGFz9yN8w28KU/details
+    uri: https://api.fastly.com/service/6Qoo35YqIXGAx6yAHEjh3Q/details
   response:
-    body: {string: !!python/unicode '{"name":"Jimdo Fastly Ansible Module Test","deleted_at":null,"versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"2x7fBSkllFGFz9yN8w28KU","staging":false,"created_at":"2017-09-27T00:39:54+00:00","deleted_at":null,"comment":"","updated_at":"2017-09-27T00:39:54+00:00","deployed":false}],"created_at":"2017-09-27T00:39:54+00:00","customer_id":"1z3ENiEMpKOrsGqTBLhkF2","comment":"","updated_at":"2017-09-27T00:39:54+00:00","id":"2x7fBSkllFGFz9yN8w28KU","version":{"testing":false,"number":1,"service_id":"2x7fBSkllFGFz9yN8w28KU","staging":false,"updated_at":"2017-09-27T00:39:54+00:00","deployed":false,"locked":false,"active":false,"deleted_at":null,"created_at":"2017-09-27T00:39:54+00:00","comment":"","acls":[],"backends":[],"cache_settings":[],"conditions":[],"dictionaries":[],"directors":[],"domains":[],"gzips":[],"headers":[],"healthchecks":[],"request_settings":[],"response_objects":[],"snippets":[],"vcls":[],"wordpress":[],"settings":{"general.default_ttl":3600,"general.default_host":"","general.default_pci":0}},"active_version":null}'}
+    body: {string: !!python/unicode '{"name":"Jimdo Fastly Ansible Module Test","deleted_at":null,"versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","staging":false,"created_at":"2017-10-10T10:36:08Z","deleted_at":null,"comment":"","updated_at":"2017-10-10T10:36:08Z","deployed":false}],"created_at":"2017-10-10T10:36:08Z","customer_id":"1z3ENiEMpKOrsGqTBLhkF2","comment":"","updated_at":"2017-10-10T10:36:08Z","id":"6Qoo35YqIXGAx6yAHEjh3Q","version":{"testing":false,"number":1,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","staging":false,"updated_at":"2017-10-10T10:36:08Z","deployed":false,"locked":false,"active":false,"deleted_at":null,"created_at":"2017-10-10T10:36:08Z","comment":"","acls":[],"backends":[],"cache_settings":[],"conditions":[],"dictionaries":[],"directors":[],"domains":[],"gzips":[],"headers":[],"healthchecks":[],"request_settings":[],"response_objects":[],"snippets":[],"vcls":[],"wordpress":[],"settings":{"general.default_ttl":3600,"general.default_host":"","general.default_pci":0}},"active_version":null}'}
     headers:
       accept-ranges: [bytes]
       age: ['0']
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['1077']
+      content-length: ['1047']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:55 GMT']
+      date: ['Tue, 10 Oct 2017 10:36:08 GMT']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8320-YYZ']
-      x-timer: ['S1506472795.866490,VS0,VE188']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4425-AMS']
+      x-timer: ['S1507631768.163743,VS0,VE158']
     status: {code: 200, message: OK}
 - request:
     body: null
     headers:
       Content-Type: [application/json]
     method: POST
-    uri: https://api.fastly.com/service/2x7fBSkllFGFz9yN8w28KU/version
+    uri: https://api.fastly.com/service/6Qoo35YqIXGAx6yAHEjh3Q/version
   response:
-    body: {string: !!python/unicode '{"service_id":"2x7fBSkllFGFz9yN8w28KU","number":2}'}
+    body: {string: !!python/unicode '{"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","number":2}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
       content-length: ['50']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:55 GMT']
-      fastly-ratelimit-remaining: ['821']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:08 GMT']
+      fastly-ratelimit-remaining: ['803']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8330-YYZ']
-      x-timer: ['S1506472795.327409,VS0,VE184']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4430-AMS']
+      x-timer: ['S1507631768.399128,VS0,VE415']
     status: {code: 200, message: OK}
 - request:
     body: !!python/unicode '{"comment": "test1", "name": "cdn.example8000.com"}'
     headers:
       Content-Type: [application/json]
     method: POST
-    uri: https://api.fastly.com/service/2x7fBSkllFGFz9yN8w28KU/version/2/domain
+    uri: https://api.fastly.com/service/6Qoo35YqIXGAx6yAHEjh3Q/version/2/domain
   response:
-    body: {string: !!python/unicode '{"comment":"test1","name":"cdn.example8000.com","service_id":"2x7fBSkllFGFz9yN8w28KU","version":2,"deleted_at":null,"created_at":"2017-09-27T00:39:55+00:00","updated_at":"2017-09-27T00:39:55+00:00"}'}
+    body: {string: !!python/unicode '{"comment":"test1","name":"cdn.example8000.com","service_id":"6Qoo35YqIXGAx6yAHEjh3Q","version":2,"deleted_at":null,"created_at":"2017-10-10T10:36:09Z","updated_at":"2017-10-10T10:36:09Z"}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['198']
+      content-length: ['188']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:55 GMT']
-      fastly-ratelimit-remaining: ['820']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:09 GMT']
+      fastly-ratelimit-remaining: ['802']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8330-YYZ']
-      x-timer: ['S1506472796.779666,VS0,VE123']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4434-AMS']
+      x-timer: ['S1507631769.898381,VS0,VE488']
     status: {code: 200, message: OK}
 - request:
     body: !!python/unicode '{"ssl_ca_cert": null, "request_condition": "", "name":
-      "localhost", "healthcheck": null, "ssl_cert_hostname": null, "address": "127.0.0.1",
-      "port": 80, "ssl_hostname": null, "shield": null}'
+      "localhost", "weight": 100, "healthcheck": null, "first_byte_timeout": 15000,
+      "connect_timeout": 1000, "error_threshold": 0, "ssl_cert_hostname": null, "address":
+      "127.0.0.1", "between_bytes_timeout": 10000, "max_conn": 200, "port": 80, "ssl_hostname":
+      null, "shield": null}'
     headers:
       Content-Type: [application/json]
     method: POST
-    uri: https://api.fastly.com/service/2x7fBSkllFGFz9yN8w28KU/version/2/backend
+    uri: https://api.fastly.com/service/6Qoo35YqIXGAx6yAHEjh3Q/version/2/backend
   response:
-    body: {string: !!python/unicode '{"ssl_ca_cert":null,"request_condition":"","name":"localhost","healthcheck":null,"ssl_cert_hostname":null,"address":"127.0.0.1","port":80,"ssl_hostname":null,"shield":null,"service_id":"2x7fBSkllFGFz9yN8w28KU","version":2,"max_tls_version":null,"ssl_client_cert":null,"hostname":null,"error_threshold":0,"first_byte_timeout":15000,"client_cert":null,"weight":100,"updated_at":"2017-09-27T00:39:56+00:00","connect_timeout":1000,"ipv4":"127.0.0.1","ssl_ciphers":null,"between_bytes_timeout":10000,"ssl_client_key":null,"auto_loadbalance":false,"ssl_check_cert":true,"ssl_sni_hostname":null,"min_tls_version":null,"ipv6":null,"deleted_at":null,"max_conn":200,"use_ssl":false,"created_at":"2017-09-27T00:39:56+00:00","comment":""}'}
+    body: {string: !!python/unicode '{"ssl_ca_cert":null,"request_condition":"","name":"localhost","weight":100,"healthcheck":null,"first_byte_timeout":15000,"connect_timeout":1000,"error_threshold":0,"ssl_cert_hostname":null,"address":"127.0.0.1","between_bytes_timeout":10000,"max_conn":200,"port":80,"ssl_hostname":null,"shield":null,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","version":2,"max_tls_version":null,"ssl_client_cert":null,"hostname":null,"client_cert":null,"updated_at":"2017-10-10T10:36:09Z","ipv4":"127.0.0.1","ssl_ciphers":null,"ssl_client_key":null,"auto_loadbalance":false,"ssl_check_cert":true,"ssl_sni_hostname":null,"min_tls_version":null,"ipv6":null,"deleted_at":null,"use_ssl":false,"created_at":"2017-10-10T10:36:09Z","comment":""}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['726']
+      content-length: ['716']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:56 GMT']
-      fastly-ratelimit-remaining: ['819']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:09 GMT']
+      fastly-ratelimit-remaining: ['801']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8326-YYZ']
-      x-timer: ['S1506472796.211273,VS0,VE203']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4447-AMS']
+      x-timer: ['S1507631769.492848,VS0,VE467']
     status: {code: 200, message: OK}
 - request:
     body: !!python/unicode '{"ignore_if_set": "0", "regex": "", "request_condition":
@@ -259,26 +262,26 @@ interactions:
     headers:
       Content-Type: [application/json]
     method: POST
-    uri: https://api.fastly.com/service/2x7fBSkllFGFz9yN8w28KU/version/2/header
+    uri: https://api.fastly.com/service/6Qoo35YqIXGAx6yAHEjh3Q/version/2/header
   response:
     body: {string: !!python/unicode '{"ignore_if_set":"0","regex":"","request_condition":null,"name":"Set
-        Location header","src":"\"https://u.jimcdn.com\" req.url.path","dst":"http.Location","substitution":"","priority":"10","cache_condition":null,"action":"set","type":"response","response_condition":null,"service_id":"2x7fBSkllFGFz9yN8w28KU","version":"2","updated_at":"2017-09-27T00:39:56+00:00","deleted_at":null,"created_at":"2017-09-27T00:39:56+00:00"}'}
+        Location header","src":"\"https://u.jimcdn.com\" req.url.path","dst":"http.Location","substitution":"","priority":"10","cache_condition":null,"action":"set","type":"response","response_condition":null,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","version":"2","updated_at":"2017-10-10T10:36:10Z","deleted_at":null,"created_at":"2017-10-10T10:36:10Z"}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['422']
+      content-length: ['412']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:56 GMT']
-      fastly-ratelimit-remaining: ['818']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:10 GMT']
+      fastly-ratelimit-remaining: ['800']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8322-YYZ']
-      x-timer: ['S1506472797.652750,VS0,VE188']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4127-AMS']
+      x-timer: ['S1507631770.057832,VS0,VE481']
     status: {code: 200, message: OK}
 - request:
     body: !!python/unicode '{"status": "302", "request_condition": "", "name": "Set
@@ -286,60 +289,60 @@ interactions:
     headers:
       Content-Type: [application/json]
     method: POST
-    uri: https://api.fastly.com/service/2x7fBSkllFGFz9yN8w28KU/version/2/response_object
+    uri: https://api.fastly.com/service/6Qoo35YqIXGAx6yAHEjh3Q/version/2/response_object
   response:
     body: {string: !!python/unicode '{"status":"302","request_condition":"","name":"Set
-        302 status code","content":"","content_type":"","response":"Ok","service_id":"2x7fBSkllFGFz9yN8w28KU","version":"2","deleted_at":null,"cache_condition":"","created_at":"2017-09-27T00:39:57+00:00","updated_at":"2017-09-27T00:39:57+00:00"}'}
+        302 status code","content":"","content_type":"","response":"Ok","service_id":"6Qoo35YqIXGAx6yAHEjh3Q","version":"2","deleted_at":null,"cache_condition":"","created_at":"2017-10-10T10:36:11Z","updated_at":"2017-10-10T10:36:11Z"}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['288']
+      content-length: ['278']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:57 GMT']
-      fastly-ratelimit-remaining: ['817']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:11 GMT']
+      fastly-ratelimit-remaining: ['799']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8323-YYZ']
-      x-timer: ['S1506472797.051368,VS0,VE80']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4131-AMS']
+      x-timer: ['S1507631771.646036,VS0,VE443']
     status: {code: 200, message: OK}
 - request:
     body: !!python/unicode '{"general.default_ttl": 3600}'
     headers:
       Content-Type: [application/json]
     method: PUT
-    uri: https://api.fastly.com/service/2x7fBSkllFGFz9yN8w28KU/version/2/settings
+    uri: https://api.fastly.com/service/6Qoo35YqIXGAx6yAHEjh3Q/version/2/settings
   response:
-    body: {string: !!python/unicode '{"general.default_ttl":3600,"version":2,"general.default_host":"","general.default_pci":0,"service_id":"2x7fBSkllFGFz9yN8w28KU"}'}
+    body: {string: !!python/unicode '{"general.default_ttl":3600,"version":2,"general.default_host":"","general.default_pci":0,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q"}'}
     headers:
       accept-ranges: [bytes]
       cache-control: [no-cache]
       connection: [keep-alive]
       content-length: ['128']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:57 GMT']
-      fastly-ratelimit-remaining: ['816']
-      fastly-ratelimit-reset: ['1506474000']
+      date: ['Tue, 10 Oct 2017 10:36:11 GMT']
+      fastly-ratelimit-remaining: ['798']
+      fastly-ratelimit-reset: ['1507633200']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8326-YYZ']
-      x-timer: ['S1506472797.373042,VS0,VE112']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4146-AMS']
+      x-timer: ['S1507631771.170095,VS0,VE468']
     status: {code: 200, message: OK}
 - request:
     body: null
     headers:
       Content-Type: [application/json]
     method: GET
-    uri: https://api.fastly.com/service/2x7fBSkllFGFz9yN8w28KU/details
+    uri: https://api.fastly.com/service/6Qoo35YqIXGAx6yAHEjh3Q/details
   response:
-    body: {string: !!python/unicode '{"name":"Jimdo Fastly Ansible Module Test","deleted_at":null,"versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"2x7fBSkllFGFz9yN8w28KU","staging":false,"created_at":"2017-09-27T00:39:54+00:00","deleted_at":null,"comment":"","updated_at":"2017-09-27T00:39:54+00:00","deployed":false},{"testing":false,"locked":false,"number":2,"active":false,"service_id":"2x7fBSkllFGFz9yN8w28KU","staging":false,"created_at":"2017-09-27T00:39:55+00:00","deleted_at":null,"comment":"","updated_at":"2017-09-27T00:39:57+00:00","deployed":false}],"created_at":"2017-09-27T00:39:54+00:00","customer_id":"1z3ENiEMpKOrsGqTBLhkF2","comment":"","updated_at":"2017-09-27T00:39:54+00:00","id":"2x7fBSkllFGFz9yN8w28KU","version":{"testing":false,"number":2,"service_id":"2x7fBSkllFGFz9yN8w28KU","staging":false,"updated_at":"2017-09-27T00:39:57+00:00","deployed":false,"locked":false,"active":false,"deleted_at":null,"created_at":"2017-09-27T00:39:55+00:00","comment":"","acls":[],"backends":[{"max_tls_version":null,"ssl_ca_cert":null,"auto_loadbalance":false,"ssl_check_cert":true,"shield":null,"hostname":null,"ssl_client_cert":null,"error_threshold":0,"request_condition":"","first_byte_timeout":15000,"ssl_cert_hostname":null,"weight":100,"client_cert":null,"address":"127.0.0.1","ssl_hostname":null,"ssl_sni_hostname":null,"min_tls_version":null,"ipv6":null,"ipv4":"127.0.0.1","connect_timeout":1000,"ssl_ciphers":null,"name":"localhost","healthcheck":null,"port":80,"max_conn":200,"use_ssl":false,"comment":"","between_bytes_timeout":10000,"ssl_client_key":null}],"cache_settings":[],"conditions":[],"dictionaries":[],"directors":[],"domains":[{"comment":"test1","name":"cdn.example8000.com"}],"gzips":[],"headers":[{"priority":"10","src":"\"https://u.jimcdn.com\"
+    body: {string: !!python/unicode '{"name":"Jimdo Fastly Ansible Module Test","deleted_at":null,"versions":[{"testing":false,"locked":false,"number":1,"active":false,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","staging":false,"created_at":"2017-10-10T10:36:08Z","deleted_at":null,"comment":"","updated_at":"2017-10-10T10:36:08Z","deployed":false},{"testing":false,"locked":false,"number":2,"active":false,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","staging":false,"created_at":"2017-10-10T10:36:08Z","deleted_at":null,"comment":"","updated_at":"2017-10-10T10:36:11Z","deployed":false}],"created_at":"2017-10-10T10:36:08Z","customer_id":"1z3ENiEMpKOrsGqTBLhkF2","comment":"","updated_at":"2017-10-10T10:36:08Z","id":"6Qoo35YqIXGAx6yAHEjh3Q","version":{"testing":false,"number":2,"service_id":"6Qoo35YqIXGAx6yAHEjh3Q","staging":false,"updated_at":"2017-10-10T10:36:11Z","deployed":false,"locked":false,"active":false,"deleted_at":null,"created_at":"2017-10-10T10:36:08Z","comment":"","acls":[],"backends":[{"max_tls_version":null,"ssl_ca_cert":null,"auto_loadbalance":false,"ssl_check_cert":true,"shield":null,"hostname":null,"ssl_client_cert":null,"error_threshold":0,"request_condition":"","first_byte_timeout":15000,"ssl_cert_hostname":null,"weight":100,"client_cert":null,"address":"127.0.0.1","ssl_hostname":null,"ssl_sni_hostname":null,"min_tls_version":null,"ipv6":null,"ipv4":"127.0.0.1","connect_timeout":1000,"ssl_ciphers":null,"name":"localhost","healthcheck":null,"port":80,"max_conn":200,"use_ssl":false,"comment":"","between_bytes_timeout":10000,"ssl_client_key":null}],"cache_settings":[],"conditions":[],"dictionaries":[],"directors":[],"domains":[{"comment":"test1","name":"cdn.example8000.com"}],"gzips":[],"headers":[{"priority":"10","src":"\"https://u.jimcdn.com\"
         req.url.path","name":"Set Location header","substitution":"","ignore_if_set":"0","cache_condition":null,"request_condition":null,"regex":"","response_condition":null,"action":"set","type":"response","dst":"http.Location"}],"healthchecks":[],"request_settings":[],"response_objects":[{"request_condition":"","content_type":"","status":"302","response":"Ok","name":"Set
         302 status code","content":"","cache_condition":""}],"snippets":[],"vcls":[],"wordpress":[],"settings":{"general.default_ttl":3600,"general.default_host":"","general.default_pci":0}},"active_version":null}'}
     headers:
@@ -347,15 +350,15 @@ interactions:
       age: ['0']
       cache-control: [no-cache]
       connection: [keep-alive]
-      content-length: ['2350']
+      content-length: ['2310']
       content-type: [application/json]
-      date: ['Wed, 27 Sep 2017 00:39:57 GMT']
+      date: ['Tue, 10 Oct 2017 10:36:11 GMT']
       status: [200 OK]
       vary: [Accept-Encoding]
       via: [1.1 varnish, 1.1 varnish]
       x-cache: ['MISS, MISS']
       x-cache-hits: ['0, 0']
-      x-served-by: ['app-slwdc9051-SL, cache-yyz8334-YYZ']
-      x-timer: ['S1506472798.691136,VS0,VE81']
+      x-served-by: ['app-slwdc9051-SL, cache-ams4434-AMS']
+      x-timer: ['S1507631772.717987,VS0,VE154']
     status: {code: 200, message: OK}
 version: 1

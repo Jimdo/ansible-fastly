@@ -249,6 +249,12 @@ class FastlyBackend(FastlyObject):
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'shield': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'healthcheck': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'weight': dict(required=False, type='int', default=100),
+        'connect_timeout': dict(required=False, type='int', default=1000),
+        'first_byte_timeout': dict(required=False, type='int', default=15000),
+        'between_bytes_timeout': dict(required=False, type='int', default=10000),
+        'error_threshold': dict(required=False, type='int', default=0),
+        'max_conn': dict(required=False, type='int', default=200),
     }
 
     def __init__(self, config, validate_choices):
@@ -261,6 +267,12 @@ class FastlyBackend(FastlyObject):
         self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
         self.shield = self.read_config(config, validate_choices, 'shield')
         self.healthcheck = self.read_config(config, validate_choices, 'healthcheck')
+        self.weight = self.read_config(config, validate_choices, 'weight')
+        self.connect_timeout = self.read_config(config, validate_choices, 'connect_timeout')
+        self.first_byte_timeout = self.read_config(config, validate_choices, 'first_byte_timeout')
+        self.between_bytes_timeout = self.read_config(config, validate_choices, 'between_bytes_timeout')
+        self.error_threshold = self.read_config(config, validate_choices, 'error_threshold')
+        self.max_conn = self.read_config(config, validate_choices, 'max_conn')
 
     def sort_key(f):
         return f.name
