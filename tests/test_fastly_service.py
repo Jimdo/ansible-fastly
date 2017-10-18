@@ -261,6 +261,26 @@ class TestFastly(unittest.TestCase):
         self.assertEqual(service.active_version.configuration, configuration)
 
     @my_vcr.use_cassette()
+    def test_fastly_backend_weight_even(self):
+        configuration =  FastlyConfiguration({
+            'domains': [{
+                'name': self.FASTLY_TEST_DOMAIN,
+            }],
+            'backends': [{
+                'name': 'my-backend1.example.net',
+                'address': 'my-backend1.example.net',
+                'weight': 50
+            },
+            {
+                'name': 'my-backend2.example.net',
+                'address': 'my-backend2.example.net',
+                'weight': 50
+            }]
+        })
+        service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
+        self.assertEqual(service.active_version.configuration, configuration)
+
+    @my_vcr.use_cassette()
     def test_fastly_header_priority_not_required(self):
         configuration =  FastlyConfiguration({
             'domains': [{

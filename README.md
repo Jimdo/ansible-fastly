@@ -36,16 +36,22 @@ $ ansible-galaxy install Jimdo.fastly
 
 [Fastly documentation](https://docs.fastly.com/api/config#backend)
 
-| Field             | Required | Type                                                    | Default |
-|:------------------|:---------|:--------------------------------------------------------|:--------|
-| name              | true     | string                                                  |         |
-| port              | false    | integer                                                 | 80      |
-| address           | true     | string                                                  |         |
-| ssl_hostname      | false    | string                                                  |         |
-| ssl_ca_cert       | false    | string                                                  |         |
-| ssl_cert_hostname | false    | string                                                  |         |
-| shield            | false    | string                                                  |         |
-| healthcheck       | false    | string                                                  |         |
+| Field                 | Required | Type                                              | Default |
+|:----------------------|:---------|:--------------------------------------------------|:--------|
+| name                  | true     | string                                            |         |
+| port                  | false    | integer                                           | 80      |
+| address               | true     | string                                            |         |
+| ssl_hostname          | false    | string                                            |         |
+| ssl_ca_cert           | false    | string                                            |         |
+| ssl_cert_hostname     | false    | string                                            |         |
+| shield                | false    | string                                            |         |
+| healthcheck           | false    | string                                            |         |
+| weight                | false    | integer                                           | 100     |
+| connect_timeout       | false    | integer                                           | 1000    |
+| first_byte_timeout    | false    | integer                                           | 15000   |
+| between_bytes_timeout | false    | integer                                           | 10000   |
+| error_threshold       | false    | integer                                           | 0       |
+| max_conn              | false    | integer                                           | 200     |
 
 ### Cache Settings
 
