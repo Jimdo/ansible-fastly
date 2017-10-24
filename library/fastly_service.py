@@ -30,6 +30,10 @@ options:
         required: true
         description:
             - List of backends to service requests from your domains
+    healthchecks:
+        required: false
+        description:
+            - List of healthchecks
     conditions:
         required: false
         description:
@@ -62,6 +66,10 @@ options:
         required: false
         description:
             - List of request settings
+    dictionaries:
+        required: false
+        description:
+            - List of dictionaries
 '''
 
 EXAMPLES = '''
@@ -176,6 +184,7 @@ EXAMPLES = '''
 import httplib
 import urllib
 import copy
+import logging,traceback
 
 from ansible.module_utils.basic import *
 
@@ -246,6 +255,9 @@ class FastlyObject(object):
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class FastlyDomain(FastlyObject):
     schema = {
@@ -272,7 +284,7 @@ class FastlyBackend(FastlyObject):
                       'yyz-on-ca','melbourne-au','miami-fl-us','jfk-ny-us','osaka-jp',
                       'cdg-par-fr','perth-au','sjc-ca-us','sea-wa-us','singapore-sg',
                       'stockholm-bma','sydney-au','tokyo-jp2','wellington-wlg','gru-br-sa']),
-        # 'healthcheck': dict(required=False, type='str', default=None), # TODO implement healtchecks
+        'healthcheck': dict(required=False, type='str', default=None), # TODO implement healthchecks
         # adv options
         'max_conn': dict(required=False, type='intstr', default=200),
         'error_threshold': dict(required=False, type='intstr', default=0),
@@ -307,6 +319,7 @@ class FastlyBackend(FastlyObject):
         self.address = self.read_config(config, validate_choices, 'address')
         self.comment = self.read_config(config, validate_choices, 'comment')
         self.shield = self.read_config(config, validate_choices, 'shield')
+        self.healthcheck = self.read_config(config, validate_choices, 'healthcheck')
         self.max_conn = self.read_config(config, validate_choices, 'max_conn')
         self.error_threshold = self.read_config(config, validate_choices, 'error_threshold')
         self.connect_timeout = self.read_config(config, validate_choices, 'connect_timeout')
@@ -327,6 +340,41 @@ class FastlyBackend(FastlyObject):
         self.ssl_sni_hostname = self.read_config(config, validate_choices, 'ssl_sni_hostname')
         self.ssl_client_cert = self.read_config(config, validate_choices, 'ssl_client_cert')
         self.ssl_client_key = self.read_config(config, validate_choices, 'ssl_client_key')
+
+class FastlyHealthcheck(FastlyObject):
+    schema = {
+        'method': dict(required=False, type='str', default='HEAD',
+                     choices=['HEAD', 'GET', 'POST']),
+        'path': dict(required=False, type='str', default='/'),
+        'host': dict(required=True, type='str', default=None),
+        'name': dict(required=True, type='str', default=None),
+        'expected_response': dict(required=False, type='int', default=200),
+        'comment': dict(required=False, type='str', default=''),
+        # 'http_version': dict(required=False, type='str', default='1.1',
+        #                     choices=['1.0', '1.1']),
+        # check frequency
+        'threshold': dict(required=False, type='int', default=1),
+        'window': dict(required=False, type='int', default=2),
+        'initial': dict(required=False, type='int', default=1),
+        'check_interval': dict(required=False, type='int', default=60000),
+        'timeout': dict(required=False, type='int', default=5000),
+    }
+    sort_key = lambda f: f.name
+
+    def __init__(self, config, validate_choices):
+        self.method = self.read_config(config, validate_choices, 'method')
+        self.path = self.read_config(config, validate_choices, 'path')
+        self.host = self.read_config(config, validate_choices, 'host')
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.expected_response = self.read_config(config, validate_choices, 'expected_response')
+        self.comment = self.read_config(config, validate_choices, 'comment')
+        # self.http_version = self.read_config(config, validate_choices, 'name')
+        # check frequency
+        self.threshold = self.read_config(config, validate_choices, 'threshold')
+        self.window = self.read_config(config, validate_choices, 'window')
+        self.initial = self.read_config(config, validate_choices, 'initial')
+        self.check_interval = self.read_config(config, validate_choices, 'check_interval')
+        self.timeout = self.read_config(config, validate_choices, 'timeout')
 
 class FastlyCondition(FastlyObject):
     schema = {
@@ -351,8 +399,8 @@ class FastlyGzip(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'cache_condition': dict(required=False, type='str', default=''),
-        'content_types': dict(required=False, type='str', default=''),
-        'extensions': dict(required=False, type='str', default=''),
+        'content_types': dict(required=False, type='str', default='text/html application/x-javascript text/css application/javascript text/javascript application/json application/vnd.ms-fontobject application/x-font-opentype application/x-font-truetype application/x-font-ttf application/xml font/eot font/opentype font/otf image/svg+xml image/vnd.microsoft.icon text/plain text/xml'),
+        'extensions': dict(required=False, type='str', default='css js html eot ico otf ttf json'),
     }
     sort_key = lambda f: f.name
 
@@ -519,9 +567,20 @@ class FastlyRequestSetting(FastlyObject):
         # condition
         self.request_condition = self.read_config(config, validate_choices, 'request_condition')
 
+class FastlyDictionary(FastlyObject):
+    # see https://docs.fastly.com/api/config#dictionary
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+    }
+    sort_key = lambda f: f.name
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+
 class FastlySettings(object):
     def __init__(self, settings, validate_choices = True):
         self.domains = []
+        self.healthchecks = []
         self.backends = []
         self.conditions = []
         self.gzips = []
@@ -531,10 +590,15 @@ class FastlySettings(object):
         self.s3s = []
         self.scalyrs = []
         self.request_settings = []
+        self.dictionaries = []
 
         if 'domains' in settings and settings['domains'] is not None:
             for domain in settings['domains']:
                 self.domains.append(FastlyDomain(domain, validate_choices))
+
+        if 'healthchecks' in settings and settings['healthchecks'] is not None:
+            for healthcheck in settings['healthchecks']:
+                self.healthchecks.append(FastlyHealthcheck(healthcheck, validate_choices))
 
         if 'backends' in settings and settings['backends'] is not None:
             for backend in settings['backends']:
@@ -572,8 +636,13 @@ class FastlySettings(object):
             for request_setting in settings['request_settings']:
                 self.request_settings.append(FastlyRequestSetting(request_setting, validate_choices))
 
+        if 'dictionaries' in settings and settings['dictionaries'] is not None:
+            for dictionary in settings['dictionaries']:
+                self.dictionaries.append(FastlyDictionary(dictionary, validate_choices))
+
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
+               and sorted(self.healthchecks, key=FastlyHealthcheck.sort_key) == sorted(other.healthchecks, key=FastlyHealthcheck.sort_key) \
                and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
                and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
                and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
@@ -582,7 +651,8 @@ class FastlySettings(object):
                and sorted(self.vcls, key=FastlyVCL.sort_key) == sorted(other.vcls, key=FastlyVCL.sort_key) \
                and sorted(self.s3s, key=FastlyS3.sort_key) == sorted(other.s3s, key=FastlyS3.sort_key) \
                and sorted(self.scalyrs, key=FastlyScalyr.sort_key) == sorted(other.scalyrs, key=FastlyScalyr.sort_key) \
-               and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key)
+               and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
+               and sorted(self.dictionaries, key=FastlyDictionary.sort_key) == sorted(other.dictionaries, key=FastlyDictionary.sort_key)
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -611,6 +681,38 @@ class FastlyService(object):
 
 class FastlyClient(object):
     FASTLY_API_HOST = 'api.fastly.com'
+    setting_name_plurals = {
+        'request_setting': 'request_settings',
+        'dictionary': 'dictionaries'
+    }
+    setting_names = [
+        'domain',
+        'condition',
+        'healthcheck',
+        'backend',
+        'gzip',
+        'header',
+        'response_object',
+        'vcl',
+        's3',
+        'scalyr',
+        'request_setting',
+        'dictionary',
+    ]
+    api_endpoints = {
+        'domain': '/service/%s/version/%s/domain',
+        'healthcheck': '/service/%s/version/%s/healthcheck',
+        'backend': '/service/%s/version/%s/backend',
+        'condition': '/service/%s/version/%s/condition',
+        'gzip': '/service/%s/version/%s/gzip',
+        'header': '/service/%s/version/%s/header',
+        'response_object': '/service/%s/version/%s/response_object',
+        'vcl': '/service/%s/version/%s/vcl',
+        's3': '/service/%s/version/%s/logging/s3',
+        'scalyr': '/service/%s/version/%s/logging/scalyr',
+        'request_setting': '/service/%s/version/%s/request_settings',
+        'dictionary': '/service/%s/version/%s/dictionary',
+    }
 
     def __init__(self, fastly_api_key):
         self.fastly_api_key = fastly_api_key
@@ -630,6 +732,53 @@ class FastlyClient(object):
         conn = httplib.HTTPSConnection(self.FASTLY_API_HOST)
         conn.request(method, path, body, headers)
         return FastlyResponse(conn.getresponse())
+
+    def call_api(self, action, setting_name, service_id, version, setting, current_setting=None):
+        url = self.api_endpoints[setting_name]
+        logging.debug('action:%s setting_name:%s url:%s setting:%s' % (action, setting_name, url, setting.to_json()))
+
+        # fix up empty request_condition for request_setting
+        if (
+                action in ["create", "update"] and
+                setting_name in ["request_setting"] and
+                setting.request_condition == ''
+            ):
+            setting = copy.deepcopy(setting)
+            setting.request_condition = None
+            logging.debug('request_condition empty for setting_name:%s setting:%s' % (setting_name, setting.to_json()))
+
+        # fix up empty response_condition for s3, scalyr
+        if (
+                action in ["create", "update"] and
+                setting_name in ["s3", "scalyr"] and
+                setting.response_condition == ''
+            ):
+            setting = copy.deepcopy(setting)
+            setting.response_condition = None
+            logging.debug('response_condition empty for setting_name:%s setting:%s' % (setting_name, setting.to_json()))
+
+        if action == "create":
+            # url format - /service/%s/version/%s/SETTING
+            response = self._request(url % (service_id, version), 'POST', setting)
+        elif action == "update":
+            # url format - /service/%s/version/%s/SETTING/OLD_NAME
+            url += '/%s'
+            name_to_update = urllib.quote(current_setting.name)
+            logging.debug('url:%s name_to_update:%s setting:%s' % (url, name_to_update, setting.to_json()))
+            response = self._request(url % (service_id, version, name_to_update), 'PUT', setting)
+        elif action == "delete":
+            # url format - /service/%s/version/%s/SETTING/OLD_NAME
+            url += '/%s'
+            name_to_delete = urllib.quote(setting.name)
+            response = self._request(url % (service_id, version, name_to_delete), 'DELETE', setting)
+
+        if response.status == 200:
+            if action == "delete":
+                return True
+            return response.payload
+        else:
+            raise Exception("Error trying to %s %s for service %s, version %s (%s)" % (
+                action, setting_name, service_id, version, response.payload['detail']))
 
     def get_service_by_name(self, service_name):
         response = self._request('/service/search?name=%s' % urllib.quote(service_name))
@@ -678,6 +827,13 @@ class FastlyClient(object):
         else:
             raise Exception("Error creating new version for service %s" % service_id)
 
+    def clone_version(self, service_id, version):
+        response = self._request('/service/%s/version/%s/clone' % (service_id, version), 'PUT')
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error cloning version %s for service %s" % (version, service_id))
+
     def activate_version(self, service_id, version):
         response = self._request('/service/%s/version/%s/activate' % (service_id, version), 'PUT')
         if response.status == 200:
@@ -694,98 +850,6 @@ class FastlyClient(object):
             raise Exception(
                 "Error deactivating version %s for service %s (%s)" % (version, service_id, response.payload['detail']))
 
-    def create_domain(self, service_id, version, domain):
-        response = self._request('/service/%s/version/%s/domain' % (service_id, version), 'POST', domain)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating domain for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_backend(self, service_id, version, backend):
-        response = self._request('/service/%s/version/%s/backend' % (service_id, version), 'POST', backend)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating backend for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_condition(self, service_id, version, condition):
-        response = self._request('/service/%s/version/%s/condition' % (service_id, version), 'POST', condition)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating condition for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_gzip(self, service_id, version, gzip):
-        response = self._request('/service/%s/version/%s/gzip' % (service_id, version), 'POST',
-                                 gzip)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating gzip for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_header(self, service_id, version, header):
-        response = self._request('/service/%s/version/%s/header' % (service_id, version), 'POST', header)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating header for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_response_object(self, service_id, version, response_object):
-        response = self._request('/service/%s/version/%s/response_object' % (service_id, version), 'POST',
-                                 response_object)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating response object for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_vcl(self, service_id, version, vcl):
-        response = self._request('/service/%s/version/%s/vcl' % (service_id, version), 'POST', vcl)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating vcl for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_s3(self, service_id, version, s3):
-        s3_to_post = copy.deepcopy(s3)
-        if s3_to_post.response_condition == '':
-            s3_to_post.response_condition = None;
-        response = self._request('/service/%s/version/%s/logging/s3' % (service_id, version), 'POST', s3_to_post)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating s3 for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_scalyr(self, service_id, version, scalyr):
-        scalyr_to_post = copy.deepcopy(scalyr)
-        if scalyr_to_post.response_condition == '':
-            scalyr_to_post.response_condition = None;
-        response = self._request('/service/%s/version/%s/logging/scalyr' % (service_id, version), 'POST', scalyr_to_post)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating scalyr for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-    def create_request_setting(self, service_id, version, request_setting):
-        request_setting_to_post = copy.deepcopy(request_setting)
-        if request_setting_to_post.request_condition == '':
-            request_setting_to_post.request_condition = None;
-        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'POST', request_setting_to_post)
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating request_setting for for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
-
-
 class FastlyStateEnforcerResult(object):
     def __init__(self, changed, actions, service):
         self.changed = changed
@@ -796,6 +860,12 @@ class FastlyStateEnforcerResult(object):
 class FastlyStateEnforcer(object):
     def __init__(self, client):
         self.client = client
+
+    def get_setting_names(self):
+        return self.client.setting_names
+
+    def get_setting_name_plural(self, setting_name):
+        return self.client.setting_name_plurals.get(setting_name, setting_name+'s')
 
     def apply_settings(self, service_name, fastly_settings, activate_new_version=True):
 
@@ -813,49 +883,61 @@ class FastlyStateEnforcer(object):
             current_version = service.latest_version
 
         if current_version is None:
-            self.deploy_version_with_settings(service.id, fastly_settings, activate_new_version)
+            # create new version
+            version = self.client.create_version(service.id)
+            self.deploy_version_with_settings(service.id, version['number'], fastly_settings, activate_new_version)
             actions.append("Deployed new version because service has no active version")
         elif fastly_settings != current_version.settings:
-            self.deploy_version_with_settings(service.id, fastly_settings, activate_new_version)
+            # clone existing version
+            version = self.client.clone_version(service.id, current_version.number)
+            self.deploy_version_with_settings(service.id, version['number'], fastly_settings, activate_new_version, current_version.settings)
             actions.append("Deployed new version because settings are not up to date")
 
         changed = len(actions) > 0
         service = self.client.get_service(service.id)
         return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service)
 
-    def deploy_version_with_settings(self, service_id, settings, activate_version):
-        version = self.client.create_version(service_id)
-        version_number = version['number']
+    def deploy_version_with_settings(self, service_id, version_number, settings, activate_version, current_settings=None):
 
-        for domain in settings.domains:
-            self.client.create_domain(service_id, version_number, domain)
+        for setting_name in self.get_setting_names():
+            setting_name_plural = self.get_setting_name_plural(setting_name)
+            new_items = getattr(settings, setting_name_plural)
+            current_items = getattr(current_settings, setting_name_plural, None)
+            # compare new with current
+            for item in new_items:
+                action = None
+                current_item = None
+                # if no current_settings, then its new and no current items
+                if current_items is None:
+                    action = "create"
+                else:
+                    # otherwise - look it up
+                    current_item = next((x for x in current_items if x.name == item.name), None)
+                    if current_item is None:
+                        # create if not found
+                        action = "create"
+                    elif current_item != item:
+                        logging.info('found - different - setting_name:%s item:%s current_item:%s' % (setting_name, item.to_json(), current_item.to_json()))
+                        # update and remove from curr_item, leftover items in current_items will get deleted
+                        action = "update"
+                        current_items.remove(current_item)
+                    else:
+                        logging.info('found - same - setting_name:%s item:%s current_item:%s' % (setting_name, item.to_json(), current_item.to_json()))
+                        # no change, leave alone but remove from curr_item, leftover items in current_items will get deleted
+                        current_items.remove(current_item)
+                # perform the update or create action or skip if found but same
+                logging.debug('action:%s setting_name:%s item:%s' % (action, setting_name, item.to_json()))
+                if action == "update":
+                    logging.debug('curr_item:%s' % (current_item.to_json()))
+                    # exists - update
+                    self.client.call_api("update", setting_name, service_id, version_number, item, current_item)
+                elif action == "create":
+                    self.client.call_api("create", setting_name, service_id, version_number, item)
 
-        for condition in settings.conditions:
-            self.client.create_condition(service_id, version_number, condition)
-
-        for backend in settings.backends:
-            self.client.create_backend(service_id, version_number, backend)
-
-        for gzip in settings.gzips:
-            self.client.create_gzip(service_id, version_number, gzip)
-
-        for header in settings.headers:
-            self.client.create_header(service_id, version_number, header)
-
-        for response_object in settings.response_objects:
-            self.client.create_response_object(service_id, version_number, response_object)
-
-        for vcl in settings.vcls:
-            self.client.create_vcl(service_id, version_number, vcl)
-
-        for s3 in settings.s3s:
-            self.client.create_s3(service_id, version_number, s3)
-
-        for scalyr in settings.scalyrs:
-            self.client.create_scalyr(service_id, version_number, scalyr)
-
-        for request_setting in settings.request_settings:
-            self.client.create_request_setting(service_id, version_number, request_setting)
+            # any items in current_settings are not needed, remove
+            if current_items is not None:
+                for item in current_items:
+                    self.client.call_api("delete", setting_name, service_id, version_number, item)
 
         if activate_version:
             self.client.activate_version(service_id, version_number)
@@ -885,6 +967,7 @@ class FastlyServiceModule(object):
                 name=dict(required=True, type='str'),
                 activate_new_version=dict(required=False, type='bool', default=True),
                 domains=dict(default=None, required=True, type='list'),
+                healthchecks=dict(default=None, required=False, type='list'),
                 backends=dict(default=None, required=True, type='list'),
                 conditions=dict(default=None, required=False, type='list'),
                 gzips=dict(default=None, required=False, type='list'),
@@ -894,6 +977,7 @@ class FastlyServiceModule(object):
                 s3s=dict(default=None, required=False, type='list'),
                 scalyrs=dict(default=None, required=False, type='list'),
                 request_settings=dict(default=None, required=False, type='list'),
+                dictionaries=dict(default=None, required=False, type='list'),
             ),
             supports_check_mode=False
         )
@@ -911,6 +995,7 @@ class FastlyServiceModule(object):
         try:
             return FastlySettings({
                 'domains': self.module.params['domains'],
+                'healthchecks': self.module.params['healthchecks'],
                 'backends': self.module.params['backends'],
                 'conditions': self.module.params['conditions'],
                 'gzips': self.module.params['gzips'],
@@ -920,11 +1005,12 @@ class FastlyServiceModule(object):
                 's3s': self.module.params['s3s'],
                 'scalyrs': self.module.params['scalyrs'],
                 'request_settings': self.module.params['request_settings'],
+                'dictionaries': self.module.params['dictionaries'],
             })
         except FastlyValidationError as err:
-            self.module.fail_json(msg='Error in ' + err.cls + ': ' + err.message)
+            self.module.fail_json(msg='Error in ' + err.cls + ': ' + err.message, stacktrace=traceback.format_exc())
         except Exception as err:
-            self.module.fail_json(msg=err.message)
+            self.module.fail_json(msg=err.message, stacktrace=traceback.format_exc())
 
     def run(self):
         try:
@@ -945,7 +1031,7 @@ class FastlyServiceModule(object):
                 self.module.exit_json(changed=result.changed, service_id=result.service.id, actions=result.actions)
 
         except Exception as err:
-            self.module.fail_json(msg=err.message)
+            self.module.fail_json(msg=err.message, stacktrace=traceback.format_exc())
 
 
 def main():
