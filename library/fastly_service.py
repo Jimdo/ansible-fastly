@@ -62,6 +62,10 @@ options:
         required: false
         description:
             - List of VCL snippets
+    upload_vcls:
+        required: false
+        description:
+            - Upload VCL
     settings:
         required: false
         description:
@@ -247,6 +251,9 @@ class FastlyBackend(FastlyObject):
         'ssl_hostname': dict(required=False, type='str', default=None),
         'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'ssl_sni_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'min_tls_version': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'max_tls_version': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'shield': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'healthcheck': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'weight': dict(required=False, type='int', default=100),
@@ -265,6 +272,9 @@ class FastlyBackend(FastlyObject):
         self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
         self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
         self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
+        self.ssl_sni_hostname = self.read_config(config, validate_choices, 'ssl_sni_hostname')
+        self.min_tls_version = self.read_config(config, validate_choices, 'min_tls_version')
+        self.max_tls_version = self.read_config(config, validate_choices, 'max_tls_version')
         self.shield = self.read_config(config, validate_choices, 'shield')
         self.healthcheck = self.read_config(config, validate_choices, 'healthcheck')
         self.weight = self.read_config(config, validate_choices, 'weight')
@@ -487,11 +497,25 @@ class FastlyResponseObject(FastlyObject):
         return f.name
 
 
+class FastlyVclUpload(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'content': dict(required=True, type='str', default=None)
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.content = self.read_config(config, validate_choices, 'content')
+
+    def sort_key(f):
+        return f.name
+
+
 class FastlyVclSnippet(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'dynamic': dict(required=False, type='int', default=0),
-        'type': dict(required=False, type='str', default='init'),
+        'type': dict(required=False, type='str', default='None'),
         'content': dict(required=True, type='str', default=None),
         'priority': dict(required=False, type='int', default=100)
     }
@@ -502,6 +526,31 @@ class FastlyVclSnippet(FastlyObject):
         self.type = self.read_config(config, validate_choices, 'type')
         self.content = self.read_config(config, validate_choices, 'content')
         self.priority = self.read_config(config, validate_choices, 'priority')
+
+    def sort_key(f):
+        return f.name
+
+class FastlySysloglogs(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'format': dict(required=True, type='str', default=None),
+        'hostname': dict(required=True, type='str', default=None),
+        'port': dict(required=True, type='int', default=None),
+        'token': dict(required=False, type='str', default=None),
+        'use_tls': dict(required=False, type='str', default=None),
+        'tls_ca_cert': dict(required=False, type='str', default=None),
+        'tls_hostname': dict(required=False, type='str', default=None)
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.format = self.read_config(config, validate_choices, 'format')
+        self.hostname = self.read_config(config, validate_choices, 'hostname')
+        self.port = self.read_config(config, validate_choices, 'port')
+        self.token = self.read_config(config, validate_choices, 'token')
+        self.use_tls = self.read_config(config, validate_choices, 'use_tls')
+        self.tls_ca_cert = self.read_config(config, validate_choices, 'tls_ca_cert')
+        self.tls_hostname = self.read_config(config, validate_choices, 'tls_hostname')
 
     def sort_key(f):
         return f.name
@@ -533,7 +582,9 @@ class FastlyConfiguration(object):
         self.headers = []
         self.response_objects = []
         self.request_settings = []
+        self.uploads = []
         self.snippets = []
+        self.sysloglogs = []
         self.settings = FastlySettings(dict(), validate_choices)
 
         if 'domains' in configuration and configuration['domains'] is not None:
@@ -576,26 +627,36 @@ class FastlyConfiguration(object):
             for response_object in configuration['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
+        if 'uploads' in configuration and configuration['uploads'] is not None:
+            for upload in configuration['uploads']:
+                self.uploads.append(FastlyVclUpload(upload, validate_choices))
+
         if 'snippets' in configuration and configuration['snippets'] is not None:
             for snippet in configuration['snippets']:
                 self.snippets.append(FastlyVclSnippet(snippet, validate_choices))
+
+        if 'sysloglogs' in configuration and configuration['sysloglogs'] is not None:
+            for sysloglog in configuration['sysloglogs']:
+                self.sysloglogs.append(FastlySysloglogs(sysloglog, validate_choices))
 
         if 'settings' in configuration and configuration['settings'] is not None:
             self.settings = FastlySettings(configuration['settings'], validate_choices)
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
-            and sorted(self.healthchecks, key=FastlyHealthcheck.sort_key) == sorted(other.healthchecks, key=FastlyHealthcheck.sort_key) \
-            and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
-            and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
-            and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
-            and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
-            and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
-            and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
-            and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
-            and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
-            and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
-            and self.settings == other.settings
+               and sorted(self.healthchecks, key=FastlyHealthcheck.sort_key) == sorted(other.healthchecks, key=FastlyHealthcheck.sort_key) \
+               and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
+               and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
+               and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
+               and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
+               and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
+               and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
+               and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
+               and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
+               and sorted(self.uploads, key=FastlyVclUpload.sort_key) == sorted(other.uploads, key=FastlyVclUpload.sort_key) \
+               and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
+               and sorted(self.sysloglogs, key=FastlySysloglogs.sort_key) == sorted(other.sysloglogs, key=FastlySysloglogs.sort_key) \
+               and self.settings == other.settings
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -797,6 +858,18 @@ class FastlyClient(object):
             raise Exception("Error creating response object for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+    def upload_custom_vcl(self, service_id, version, upload_vcl):
+        response = self._request('/service/%s/version/%s/vcl' % (service_id, version), 'POST', upload_vcl)
+
+        if response.status == 200:
+            response = self._request('/service/%s/version/%s/vcl/Main.vcl/main' % (service_id, version), 'PUT', upload_vcl)
+            if response.status == 200:
+                return response.payload
+            else:
+                raise Exception("Error uploading VCL '%s' for service %s, version %s (%s)" % (upload_vcl['name'], service_id, version, response.payload['detail']))
+        else:
+            raise Exception("Error uploading VCL '%s' for service %s, version %s (%s)" % (upload_vcl['name'], service_id, version, response.payload['detail']))
+
     def create_vcl_snippet(self, service_id, version, vcl_snippet):
         response = self._request('/service/%s/version/%s/snippet' % (service_id, version), 'POST', vcl_snippet)
 
@@ -804,6 +877,16 @@ class FastlyClient(object):
             return response.payload
         else:
             raise Exception("Error creating VCL snippet '%s' for service %s, version %s (%s)" % (vcl_snippet['name'], service_id, version, response.payload['detail']))
+
+
+    def create_sysloglogs(self, service_id, version, create_syslog):
+        response = self._request('/service/%s/version/%s/logging/syslog' % (service_id, version), 'POST', create_syslog)
+
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating syslog log '%s' for service %s, version %s (%s)" % (create_syslog['name'], service_id, version, response.payload['detail']))
+
 
     def create_settings(self, service_id, version, settings):
         response = self._request('/service/%s/version/%s/settings' % (service_id, version), 'PUT', settings)
@@ -888,8 +971,14 @@ class FastlyStateEnforcer(object):
         for response_object in configuration.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
+        for upload_vcl in configuration.uploads:
+            self.client.upload_custom_vcl(service_id, version_number, upload_vcl)
+
         for vcl_snippet in configuration.snippets:
             self.client.create_vcl_snippet(service_id, version_number, vcl_snippet)
+
+        for create_syslog in configuration.sysloglogs:
+            self.client.create_sysloglogs(service_id, version_number, create_syslog)
 
         if configuration.settings:
             self.client.create_settings(service_id, version_number, configuration.settings)
@@ -931,6 +1020,8 @@ class FastlyServiceModule(object):
                 headers=dict(default=None, required=False, type='list'),
                 request_settings=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
+                upload_vcls=dict(default=None, required=False, type='list'),
+                create_syslogs=dict(default=None, required=False, type='list'),
                 vcl_snippets=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
             ),
@@ -959,7 +1050,9 @@ class FastlyServiceModule(object):
                 'headers': self.module.params['headers'],
                 'request_settings': self.module.params['request_settings'],
                 'response_objects': self.module.params['response_objects'],
+                'uploads': self.module.params['upload_vcls'],
                 'snippets': self.module.params['vcl_snippets'],
+                'sysloglogs': self.module.params['create_syslogs'],
                 'settings': self.module.params['settings']
             })
         except FastlyValidationError as err:
