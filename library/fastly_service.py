@@ -244,8 +244,8 @@ class FastlyBackend(FastlyObject):
         'port': dict(required=False, type='int', default=80),
         'address': dict(required=True, type='str', default=None),
         'request_condition': dict(required=False, type='str', default=''),
-        'use_ssl' : dict(required=False, type='bool', default=None),
-        'ssl_check_cert' : dict(required=False, type='bool', default=None),
+        'use_ssl': dict(required=False, type='bool', default=None),
+        'ssl_check_cert': dict(required=False, type='bool', default=None),
         'ssl_hostname': dict(required=False, type='str', default=None),
         'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
@@ -501,12 +501,14 @@ class FastlyVCL(FastlyObject):
         'main': dict(required=False, type='bool', default=True),
         'name': dict(required=True, type='str', default=None),
     }
-    sort_key = lambda f: f.name
 
     def __init__(self, config, validate_choices):
         self.content = self.read_config(config, validate_choices, 'content')
         self.main = self.read_config(config, validate_choices, 'main')
         self.name = self.read_config(config, validate_choices, 'name')
+
+    def sort_key(f):
+        return f.name
 
 class FastlyVclSnippet(FastlyObject):
     schema = {
