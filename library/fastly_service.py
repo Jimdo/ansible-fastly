@@ -510,6 +510,7 @@ class FastlyVCL(FastlyObject):
     def sort_key(f):
         return f.name
 
+
 class FastlyVclSnippet(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
