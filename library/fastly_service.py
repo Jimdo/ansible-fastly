@@ -140,6 +140,8 @@ import httplib
 import urllib
 import json
 import os
+import sys
+import trace
 
 from ansible.module_utils.basic import *  # noqa: F403
 
@@ -715,6 +717,19 @@ class FastlyClient(object):
         else:
             raise Exception("Error searching for service '%s'" % service_name)
 
+    def get_active_version(self, service_id):
+        response = self._request('/service/%s/version/active' % service_id)
+        if response.status == 200:
+            cloned_from_version = response.payload['number']
+            return cloned_from_version
+    
+    def clone_version(self, service_id, version_to_clone):
+        response = self._request('/service/%s/version/%s/clone' % (service_id, version_to_clone), 'PUT')
+        if response.status == 200:
+           return response.payload
+        else: 
+           raise Exception("Could not clone version '%s' for service '%s': %s" % (version, service_id, response.payload['detail']))
+
     def get_service(self, service_id):
         response = self._request('/service/%s/details' % service_id)
         if response.status == 200:
@@ -773,8 +788,9 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating domain for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+            if response.status != 409:     
+                raise Exception("Error creating domain for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
+
 
     def create_healthcheck(self, service_id, version, healthcheck):
         response = self._request('/service/%s/version/%s/healthcheck' % (service_id, version), 'POST', healthcheck)
@@ -789,8 +805,17 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating backend for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+            if response.status == 409:
+                response = self._request('/service/%s/version/%s/backend/%s' % (service_id, version, backend.name), 'PUT', backend)
+                if response.status == 200:
+                    return response.payload
+                else:    
+                    raise Exception("Error creating backend for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
+            else:
+                raise Exception("Error creating backend for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))            
+
+
+                
 
     def create_director(self, service_id, version, director):
         response = self._request('/service/%s/version/%s/director' % (service_id, version), 'POST', director)
@@ -840,27 +865,28 @@ class FastlyClient(object):
             raise Exception("Error creating header for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
+
+
     def create_request_setting(self, service_id, version, request_setting):
-        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'POST',
-                                 request_setting)
+        self._request('/service/%s/version/%s/request_settings/%s' % (service_id, version, request_setting.name), 'DELETE')
+        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'POST', request_setting)
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating request setting for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+            raise Exception("Error creating request setting for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))            
 
     def create_response_object(self, service_id, version, response_object):
-        response = self._request('/service/%s/version/%s/response_object' % (service_id, version), 'POST',
-                                 response_object)
+        response = self._request('/service/%s/version/%s/response_object' % (service_id, version), 'POST', response_object)
         if response.status == 200:
+
             return response.payload
         else:
             raise Exception("Error creating response object for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
 
     def upload_custom_vcl(self, service_id, version, upload_vcl):
+        self._request('/service/%s/version/%s/vcl/Main.vcl' % (service_id, version), 'DELETE')
         response = self._request('/service/%s/version/%s/vcl' % (service_id, version), 'POST', upload_vcl)
-
         if response.status == 200:
             response = self._request('/service/%s/version/%s/vcl/Main.vcl/main' % (service_id, version), 'PUT', upload_vcl)
             if response.status == 200:
@@ -878,10 +904,9 @@ class FastlyClient(object):
         else:
             raise Exception("Error creating VCL snippet '%s' for service %s, version %s (%s)" % (vcl_snippet['name'], service_id, version, response.payload['detail']))
 
-
-    def create_sysloglogs(self, service_id, version, create_syslog):
+    def update_sysloglogs(self, service_id, version, create_syslog):
+        self._request('/service/%s/version/%s/logging/syslog/%s' % (service_id, version, create_syslog.name), 'DELETE') 
         response = self._request('/service/%s/version/%s/logging/syslog' % (service_id, version), 'POST', create_syslog)
-
         if response.status == 200:
             return response.payload
         else:
@@ -893,8 +918,7 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         else:
-            raise Exception("Error creating settings for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+            raise Exception("Error creating settings for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
 
 class FastlyStateEnforcerResult(object):
@@ -908,7 +932,7 @@ class FastlyStateEnforcer(object):
     def __init__(self, client):
         self.client = client
 
-    def apply_configuration(self, service_name, fastly_configuration, activate_new_version=True):
+    def apply_configuration(self, service_name, fastly_configuration, activate_new_version=False):
 
         actions = []
 
@@ -935,12 +959,27 @@ class FastlyStateEnforcer(object):
         return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service)
 
     def deploy_version_with_configuration(self, service_id, configuration, activate_version):
-        version = self.client.create_version(service_id)
+        
+
+        version_to_clone = self.client.get_active_version(service_id)
+        
+
+
+        ### new service ####
+        #version = self.client.create_version(service_id)
+        
+        ### Clone version ###
+        
+        version = self.client.clone_version(service_id, version_to_clone)       
+        
+
+
         version_number = version['number']
+
 
         for domain in configuration.domains:
             self.client.create_domain(service_id, version_number, domain)
-
+               
         # create healthchecks before backends
         for healthcheck in configuration.healthchecks:
             self.client.create_healthcheck(service_id, version_number, healthcheck)
@@ -1035,7 +1074,9 @@ class FastlyServiceModule(object):
                 fastly_api_key = os.environ['FASTLY_API_KEY']
             else:
                 self.module.fail_json(msg="A Fastly API key is required for this module. Please set it and try again")
-        return FastlyStateEnforcer(FastlyClient(fastly_api_key))
+
+        client = FastlyClient(fastly_api_key)
+        return FastlyStateEnforcer(client)
 
     def configuration(self):
         try:
@@ -1077,14 +1118,26 @@ class FastlyServiceModule(object):
             else:
                 result = enforcer.apply_configuration(service_name, self.configuration(), activate_new_version)
                 self.module.exit_json(changed=result.changed, service_id=result.service.id, actions=result.actions)
-
+#fails here
         except Exception as err:
             self.module.fail_json(msg=err.message)
 
 
+
+
 def main():
-    fastly_module = FastlyServiceModule()
-    fastly_module.run()
+    # create a Trace object, telling it what to ignore, and whether to
+# do tracing or line-counting or both.
+    tracer = trace.Trace(
+        ignoredirs=[sys.prefix, sys.exec_prefix],
+        trace=0,
+        count=1)
+    
+    tracer.run('fastly_module = FastlyServiceModule()')
+    tracer.run('fastly_module.run()')
+
+    r = tracer.results()
+    r.write_results(show_missing=True, coverdir=".")
 
 
 if __name__ == '__main__':
