@@ -1152,8 +1152,6 @@ class FastlyStateEnforcer(object):
     def apply_configuration(self, service_name, fastly_configuration, activate_new_version=True):
 
         actions = []
-        clone = False
-        version_number = ""
         service = self.client.get_service_by_name(service_name)
 
         if service is None:
@@ -1243,11 +1241,9 @@ class FastlyStateEnforcer(object):
             self.client.delete_sysloglogs(service_id, version_to_delete, syslog_name['name'])
 
     def deploy_version_with_configuration(self, service_id, configuration, activate_version,
-                                          clone=False, cloned_version=""):
+                                          clone=False, version_number=""):
 
-        if clone:
-            version_number = cloned_version
-        else:
+        if not clone:
             version = self.client.create_version(service_id)
             version_number = version['number']
 
