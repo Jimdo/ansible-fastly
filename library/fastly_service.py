@@ -589,7 +589,8 @@ class FastlyConfiguration(object):
 
         if 'domains' in configuration and configuration['domains'] is not None:
             for domain in configuration['domains']:
-                self.domains.append(FastlyDomain(domain, validate_choices))
+                if domain['name']:
+                    self.domains.append(FastlyDomain(domain, validate_choices))
 
         if 'healthchecks' in configuration and configuration['healthchecks'] is not None:
             for healthcheck in configuration['healthchecks']:
