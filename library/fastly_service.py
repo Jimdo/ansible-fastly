@@ -252,7 +252,7 @@ class FastlyBackend(FastlyObject):
         'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_sni_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
-        'ssl_check_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'ssl_check_cert': dict(required=False, type='int', default=None),
         'min_tls_version': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'max_tls_version': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'shield': dict(required=False, type='str', default=None, exclude_empty_str=True),
