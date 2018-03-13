@@ -252,6 +252,7 @@ class FastlyBackend(FastlyObject):
         'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_sni_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'ssl_check_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'min_tls_version': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'max_tls_version': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'shield': dict(required=False, type='str', default=None, exclude_empty_str=True),
@@ -273,6 +274,7 @@ class FastlyBackend(FastlyObject):
         self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
         self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
         self.ssl_sni_hostname = self.read_config(config, validate_choices, 'ssl_sni_hostname')
+        self.ssl_check_cert = self.read_config(config, validate_choices, 'ssl_check_cert')
         self.min_tls_version = self.read_config(config, validate_choices, 'min_tls_version')
         self.max_tls_version = self.read_config(config, validate_choices, 'max_tls_version')
         self.shield = self.read_config(config, validate_choices, 'shield')
