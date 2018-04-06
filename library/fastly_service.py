@@ -1048,7 +1048,7 @@ class FastlyStateEnforcer(object):
         else:
             current_version = service.latest_version
 
-        if current_version is None:
+        if current_version is None or service.active_version is None:
             self.deploy_version_with_configuration(service.id, fastly_configuration,
                                                    activate_new_version)
             actions.append("Deployed new version because service has no active version")
