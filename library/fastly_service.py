@@ -846,7 +846,7 @@ class FastlyClient(object):
                 service_id, version, response.payload['detail']))
 
     def delete_cache_settings(self, service_id, version, cache_settings):
-        response = self._request('/service/%s/version/%s/backend/%s' % (urllib.quote(service_id), version, urllib.quote(cache_settings)),
+        response = self._request('/service/%s/version/%s/cache_settings/%s' % (urllib.quote(service_id), version, urllib.quote(cache_settings)),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -898,7 +898,7 @@ class FastlyClient(object):
                 service_id, version, response.payload['detail']))
 
     def delete_gzip(self, service_id, version, gzip):
-        response = self._request('/service/%s/version/%s/backend/%s' % (urllib.quote(service_id), version, urllib.quote(gzip)),
+        response = self._request('/service/%s/version/%s/gzip/%s' % (urllib.quote(service_id), version, urllib.quote(gzip)),
                                  'DELETE')
         if response.status == 200:
             return response.payload
