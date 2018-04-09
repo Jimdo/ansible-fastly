@@ -744,13 +744,14 @@ class FastlyClient(object):
         else:
             raise Exception("Error deleting domain %s service %s, version %s (%s)" % (domain, service_id, version,
                                                                                       response.payload['detail']))
+
     def get_healthcheck_name(self, service_id, version):
         response = self._request('/service/%s/version/%s/healthcheck' % (urllib.quote(service_id), version), 'GET')
         if response.status == 200:
             return response.payload
         else:
             raise Exception("Error getting healthcheck name service %s, version %s (%s)" % (service_id, version,
-                                                                                      response.payload['detail']))
+                                                                                            response.payload['detail']))
 
     def create_healthcheck(self, service_id, version, healthcheck):
         response = self._request('/service/%s/version/%s/healthcheck' % (urllib.quote(service_id), version), 'POST', healthcheck)
