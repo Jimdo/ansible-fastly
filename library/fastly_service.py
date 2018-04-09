@@ -1034,7 +1034,6 @@ class FastlyStateEnforcer(object):
         self.client = client
 
     def apply_configuration(self, service_name, fastly_configuration, activate_new_version=True):
-
         actions = []
         service = self.client.get_service_by_name(service_name)
 
@@ -1048,19 +1047,22 @@ class FastlyStateEnforcer(object):
             current_version = service.latest_version
 
         if current_version is None or service.active_version is None:
-            self.deploy_version_with_configuration(service.id, fastly_configuration,
-                                                   activate_new_version)
-            actions.append("Deployed new version because service has no active version")
+            version_number = self.create_new_version(service.id)
+            self.configure_version(service.id, fastly_configuration, activate_new_version, version_number)
+            actions.append("Created a new version because service has no active version")
         elif fastly_configuration != current_version.configuration:
             version_number = self.clone_old_version(service.id)
-            self.delete_version_before_apply_config(service.id, version_number, fastly_configuration)
-            self.deploy_version_with_configuration(service.id, fastly_configuration,
-                                                   activate_new_version, True, version_number)
-            actions.append("Deployed new version because settings are not up to date")
+            self.reset_version(service.id, version_number)
+            self.configure_version(service.id, fastly_configuration, activate_new_version, version_number)
+            actions.append("Cloned an old version because service configuration was not up to date")
 
         changed = len(actions) > 0
         service = self.client.get_service(service.id)
         return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service)
+
+    def create_new_version(self, service_id):
+        version = self.client.create_version(service_id)
+        return version['number']
 
     def clone_old_version(self, service_id):
         version_to_clone = self.client.get_active_version(service_id)
@@ -1068,8 +1070,7 @@ class FastlyStateEnforcer(object):
         clone_version_number = clone['number']
         return clone_version_number
 
-    def delete_version_before_apply_config(self, service_id, version_to_delete, configuration):
-
+    def reset_version(self, service_id, version_to_delete):
         domain = self.client.get_domain_name(service_id, version_to_delete)
         healthcheck = self.client.get_healthcheck_name(service_id, version_to_delete)
         condition = self.client.get_condition_name(service_id, version_to_delete)
@@ -1115,13 +1116,7 @@ class FastlyStateEnforcer(object):
         for vcl_snippet_name in snippets:
             self.client.delete_vcl_snippet(service_id, version_to_delete, vcl_snippet_name['name'])
 
-    def deploy_version_with_configuration(self, service_id, configuration, activate_version,
-                                          clone=False, version_number=""):
-
-        if not clone:
-            version = self.client.create_version(service_id)
-            version_number = version['number']
-
+    def configure_version(self, service_id, configuration, activate_version, version_number):
         for domain in configuration.domains:
             self.client.create_domain(service_id, version_number, domain)
 
