@@ -133,9 +133,8 @@ class TestFastly(unittest.TestCase):
         old_service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, old_configuration, False).service
         new_service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, new_configuration, False).service
 
-        self.assertNotEqual(new_service.latest_version.configuration.response_objects, old_configuration.response_objects)
+        self.assertNotEqual(old_service.latest_version.configuration.response_objects, new_service.latest_version.configuration.response_objects)
         self.assertNotEqual(old_service.latest_version.number, new_service.latest_version.number)
-
         self.assertFalse(new_service.latest_version.active)
 
 
