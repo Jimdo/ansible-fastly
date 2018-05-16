@@ -141,9 +141,12 @@ from ansible.module_utils.basic import *  # noqa: F403
 
 
 class FastlyResponse(object):
-    def __init__(self, http_response):
+    def __init__(self, http_response, method, path):
         self.status = http_response.status
-        self.payload = json.loads(http_response.read())
+        try:
+            self.payload = json.loads(http_response.read())
+        except Exception:
+            raise Exception("Unable to parse HTTP response: method: %s, path: %s, status: %s, body: %s, headers: %s" % (method, path, http_response.status, http_response.read(), http_response.getheaders()))
 
 
 class FastlyObjectEncoder(json.JSONEncoder):
@@ -642,7 +645,7 @@ class FastlyClient(object):
 
         conn = httplib.HTTPSConnection(self.FASTLY_API_HOST)
         conn.request(method, path, body, headers)
-        return FastlyResponse(conn.getresponse())
+        return FastlyResponse(conn.getresponse(), method, path)
 
     def get_active_version(self, service_id):
         response = self._request('/service/%s/version/active' % urllib.quote(service_id))
