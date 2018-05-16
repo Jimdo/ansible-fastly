@@ -141,9 +141,12 @@ from ansible.module_utils.basic import *  # noqa: F403
 
 
 class FastlyResponse(object):
-    def __init__(self, http_response):
+    def __init__(self, http_response, method, path):
         self.status = http_response.status
-        self.payload = json.loads(http_response.read())
+        try:
+            self.payload = json.loads(http_response.read())
+        except Exception:
+            raise Exception("Unable to parse HTTP response: method: %s, path: %s, status: %s, body: %s, headers: %s" % (method, path, http_response.status, http_response.read(), http_response.getheaders()))
 
 
 class FastlyObjectEncoder(json.JSONEncoder):
@@ -642,22 +645,22 @@ class FastlyClient(object):
 
         conn = httplib.HTTPSConnection(self.FASTLY_API_HOST)
         conn.request(method, path, body, headers)
-        return FastlyResponse(conn.getresponse())
+        return FastlyResponse(conn.getresponse(), method, path)
 
     def get_active_version(self, service_id):
-        response = self._request('/service/%s/version/active' % urllib.quote(service_id))
+        response = self._request('/service/%s/version/active' % urllib.quote(service_id, ''))
         if response.status == 200:
             cloned_from_version = response.payload['number']
             return cloned_from_version
 
     def clone_version(self, service_id, version_to_clone):
-        response = self._request('/service/%s/version/%s/clone' % (urllib.quote(service_id), version_to_clone), 'PUT')
+        response = self._request('/service/%s/version/%s/clone' % (urllib.quote(service_id, ''), version_to_clone), 'PUT')
         if response.status == 200:
             return response.payload
         raise Exception("Could not clone version '%s' for service '%s': %s" % (version_to_clone, service_id, response.payload['detail']))
 
     def get_service_by_name(self, service_name):
-        response = self._request('/service/search?name=%s' % urllib.quote(service_name))
+        response = self._request('/service/search?name=%s' % urllib.quote(service_name, ''))
         if response.status == 200:
             service_id = response.payload['id']
             return self.get_service(service_id)
@@ -666,7 +669,7 @@ class FastlyClient(object):
         raise Exception("Error searching for service '%s'" % service_name)
 
     def get_service(self, service_id):
-        response = self._request('/service/%s/details' % urllib.quote(service_id))
+        response = self._request('/service/%s/details' % urllib.quote(service_id, ''))
         if response.status == 200:
             return FastlyService(response.payload)
         if response.status == 404:
@@ -685,47 +688,47 @@ class FastlyClient(object):
             return False
         if service.active_version is not None and deactivate_active_version:
             self.deactivate_version(service.id, service.active_version.number)
-        response = self._request('/service/%s' % urllib.quote(service.id), 'DELETE')
+        response = self._request('/service/%s' % urllib.quote(service.id, ''), 'DELETE')
         if response.status == 200:
             return True
         raise Exception("Error deleting service with name '%s' (%s)" % (service_name, response.payload['detail']))
 
     def create_version(self, service_id):
-        response = self._request('/service/%s/version' % urllib.quote(service_id), 'POST')
+        response = self._request('/service/%s/version' % urllib.quote(service_id, ''), 'POST')
         if response.status == 200:
             return response.payload
         raise Exception("Error creating new version for service %s" % service_id)
 
     def activate_version(self, service_id, version):
-        response = self._request('/service/%s/version/%s/activate' % (urllib.quote(service_id), version), 'PUT')
+        response = self._request('/service/%s/version/%s/activate' % (urllib.quote(service_id, ''), version), 'PUT')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error activating version %s for service %s (%s)" % (version, service_id, response.payload['detail']))
 
     def deactivate_version(self, service_id, version):
-        response = self._request('/service/%s/version/%s/deactivate' % (urllib.quote(service_id), version), 'PUT')
+        response = self._request('/service/%s/version/%s/deactivate' % (urllib.quote(service_id, ''), version), 'PUT')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error deactivating version %s for service %s (%s)" % (version, service_id, response.payload['detail']))
 
     def get_domain_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/domain' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/domain' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving domain for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_domain(self, service_id, version, domain):
-        response = self._request('/service/%s/version/%s/domain' % (urllib.quote(service_id), version), 'POST', domain)
+        response = self._request('/service/%s/version/%s/domain' % (urllib.quote(service_id, ''), version), 'POST', domain)
         if response.status == 200:
             return response.payload
         raise Exception("Error creating domain for service %s, version %s (%s)" % (
             service_id, version, response.payload['detail']))
 
     def delete_domain(self, service_id, version, domain):
-        response = self._request('/service/%s/version/%s/domain/%s' % (urllib.quote(service_id), version, urllib.quote(domain)),
+        response = self._request('/service/%s/version/%s/domain/%s' % (urllib.quote(service_id, ''), version, urllib.quote(domain, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -733,21 +736,21 @@ class FastlyClient(object):
                                                                                   response.payload['detail']))
 
     def get_healthcheck_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/healthcheck' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/healthcheck' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception("Error getting healthcheck name service %s, version %s (%s)" % (service_id, version,
                                                                                         response.payload['detail']))
 
     def create_healthcheck(self, service_id, version, healthcheck):
-        response = self._request('/service/%s/version/%s/healthcheck' % (urllib.quote(service_id), version), 'POST', healthcheck)
+        response = self._request('/service/%s/version/%s/healthcheck' % (urllib.quote(service_id, ''), version), 'POST', healthcheck)
         if response.status == 200:
             return response.payload
         raise Exception("Error creating healthcheck for service %s, version %s (%s)" % (
             service_id, version, response.payload['detail']))
 
     def delete_healthcheck(self, service_id, version, healthcheck):
-        response = self._request('/service/%s/version/%s/healthcheck/%s' % (urllib.quote(service_id), version, urllib.quote(healthcheck)),
+        response = self._request('/service/%s/version/%s/healthcheck/%s' % (urllib.quote(service_id, ''), version, urllib.quote(healthcheck, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -755,21 +758,21 @@ class FastlyClient(object):
             healthcheck, service_id, version, response.payload['detail']))
 
     def get_backend_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/backend' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/backend' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving backend for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_backend(self, service_id, version, backend):
-        response = self._request('/service/%s/version/%s/backend' % (urllib.quote(service_id), version), 'POST', backend)
+        response = self._request('/service/%s/version/%s/backend' % (urllib.quote(service_id, ''), version), 'POST', backend)
         if response.status == 200:
             return response.payload
         raise Exception("Error creating backend for service %s, version %s (%s)" % (
             service_id, version, response.payload['detail']))
 
     def delete_backend(self, service_id, version, backend):
-        response = self._request('/service/%s/version/%s/backend/%s' % (urllib.quote(service_id), version, urllib.quote(backend)),
+        response = self._request('/service/%s/version/%s/backend/%s' % (urllib.quote(service_id, ''), version, urllib.quote(backend, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -777,14 +780,14 @@ class FastlyClient(object):
             backend, service_id, version, response.payload['detail']))
 
     def get_director_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/director' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/director' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving director for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_director(self, service_id, version, director):
-        response = self._request('/service/%s/version/%s/director' % (urllib.quote(service_id), version), 'POST', director)
+        response = self._request('/service/%s/version/%s/director' % (urllib.quote(service_id, ''), version), 'POST', director)
         if response.status != 200:
             raise Exception("Error creating director for service %s, version %s (%s)" % (
                 service_id, version, response.payload['detail']))
@@ -792,14 +795,14 @@ class FastlyClient(object):
         payload = response.payload
         if director.backends is not None:
             for backend in director.backends:
-                response = self._request('/service/%s/version/%s/director/%s/backend/%s' % (urllib.quote(service_id), version, urllib.quote(director.name), urllib.quote(backend)), 'POST')
+                response = self._request('/service/%s/version/%s/director/%s/backend/%s' % (urllib.quote(service_id, ''), version, urllib.quote(director.name, ''), urllib.quote(backend, '')), 'POST')
                 if response.status != 200:
                     raise Exception("Error establishing a relationship between director %s and backend %s,  service %s, version %s (%s)" % (
                         director.name, backend, service_id, version, response.payload['detail']))
         return payload
 
     def delete_director(self, service_id, version, director):
-        response = self._request('/service/%s/version/%s/director/%s' % (urllib.quote(service_id), version, urllib.quote(director)),
+        response = self._request('/service/%s/version/%s/director/%s' % (urllib.quote(service_id, ''), version, urllib.quote(director, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -807,21 +810,21 @@ class FastlyClient(object):
             director, service_id, version, response.payload['detail']))
 
     def get_cache_settings_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/cache_settings' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/cache_settings' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving cache_settings for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_cache_settings(self, service_id, version, cache_settings):
-        response = self._request('/service/%s/version/%s/cache_settings' % (urllib.quote(service_id), version), 'POST', cache_settings)
+        response = self._request('/service/%s/version/%s/cache_settings' % (urllib.quote(service_id, ''), version), 'POST', cache_settings)
         if response.status == 200:
             return response.payload
         raise Exception("Error creating cache_settings for service %s, version %s (%s)" % (
             service_id, version, response.payload['detail']))
 
     def delete_cache_settings(self, service_id, version, cache_settings):
-        response = self._request('/service/%s/version/%s/cache_settings/%s' % (urllib.quote(service_id), version, urllib.quote(cache_settings)),
+        response = self._request('/service/%s/version/%s/cache_settings/%s' % (urllib.quote(service_id, ''), version, urllib.quote(cache_settings, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -829,43 +832,42 @@ class FastlyClient(object):
             cache_settings, service_id, version, response.payload['detail']))
 
     def get_condition_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/condition' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/condition' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving condition for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_condition(self, service_id, version, condition):
-        response = self._request('/service/%s/version/%s/condition' % (urllib.quote(service_id), version), 'POST', condition)
+        response = self._request('/service/%s/version/%s/condition' % (urllib.quote(service_id, ''), version), 'POST', condition)
         if response.status == 200:
             return response.payload
         raise Exception("Error creating condition for service %s, version %s (%s)" % (
             service_id, version, response.payload['detail']))
 
     def delete_condition(self, service_id, version, condition):
-        response = self._request('/service/%s/version/%s/condition/%s' % (urllib.quote(service_id), version, urllib.quote(condition)),
-                                 'DELETE')
+        response = self._request('/service/%s/version/%s/condition/%s' % (urllib.quote(service_id, ''), version, urllib.quote(condition, '')), 'DELETE')
         if response.status == 200:
             return response.payload
         raise Exception("Error deleting condition %s service %s, version %s (%s)" % (
             condition, service_id, version, response.payload['detail']))
 
     def get_gzip_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/gzip' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/gzip' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving gzip for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_gzip(self, service_id, version, gzip):
-        response = self._request('/service/%s/version/%s/gzip' % (urllib.quote(service_id), version), 'POST', gzip)
+        response = self._request('/service/%s/version/%s/gzip' % (urllib.quote(service_id, ''), version), 'POST', gzip)
         if response.status == 200:
             return response.payload
         raise Exception("Error creating gzip for service %s, version %s (%s)" % (
             service_id, version, response.payload['detail']))
 
     def delete_gzip(self, service_id, version, gzip):
-        response = self._request('/service/%s/version/%s/gzip/%s' % (urllib.quote(service_id), version, urllib.quote(gzip)),
+        response = self._request('/service/%s/version/%s/gzip/%s' % (urllib.quote(service_id, ''), version, urllib.quote(gzip, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -873,35 +875,35 @@ class FastlyClient(object):
             gzip, service_id, version, response.payload['detail']))
 
     def get_header_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/header' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/header' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving header for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_header(self, service_id, version, header):
-        response = self._request('/service/%s/version/%s/header' % (urllib.quote(service_id), version), 'POST', header)
+        response = self._request('/service/%s/version/%s/header' % (urllib.quote(service_id, ''), version), 'POST', header)
         if response.status == 200:
             return response.payload
         raise Exception("Error creating header for service %s, version %s (%s)" % (
             service_id, version, response.payload['detail']))
 
     def delete_header(self, service_id, version, header):
-        response = self._request('/service/%s/version/%s/header/%s' % (urllib.quote(service_id), version, urllib.quote(header)),
+        response = self._request('/service/%s/version/%s/header/%s' % (urllib.quote(service_id, ''), version, urllib.quote(header, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
         raise Exception("Error deleting header %s service %s, version %s (%s)" % (header, service_id, version, response.payload['detail']))
 
     def get_request_settings_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/request_settings' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/request_settings' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving request_settings for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_request_setting(self, service_id, version, request_setting):
-        response = self._request('/service/%s/version/%s/request_settings' % (urllib.quote(service_id), version), 'POST',
+        response = self._request('/service/%s/version/%s/request_settings' % (urllib.quote(service_id, ''), version), 'POST',
                                  request_setting)
         if response.status == 200:
             return response.payload
@@ -909,7 +911,7 @@ class FastlyClient(object):
             service_id, version, response.payload['detail']))
 
     def delete_request_settings(self, service_id, version, request_setting):
-        response = self._request('/service/%s/version/%s/request_settings/%s' % (urllib.quote(service_id), version, urllib.quote(request_setting)),
+        response = self._request('/service/%s/version/%s/request_settings/%s' % (urllib.quote(service_id, ''), version, urllib.quote(request_setting, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -917,14 +919,14 @@ class FastlyClient(object):
             request_setting, service_id, version, response.payload['detail']))
 
     def get_response_objects_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/response_object' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/response_object' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving response_object for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_response_object(self, service_id, version, response_object):
-        response = self._request('/service/%s/version/%s/response_object' % (urllib.quote(service_id), version), 'POST',
+        response = self._request('/service/%s/version/%s/response_object' % (urllib.quote(service_id, ''), version), 'POST',
                                  response_object)
         if response.status == 200:
             return response.payload
@@ -932,7 +934,7 @@ class FastlyClient(object):
             service_id, version, response.payload['detail']))
 
     def delete_response_object(self, service_id, version, response_object):
-        response = self._request('/service/%s/version/%s/response_object/%s' % (urllib.quote(service_id), version, urllib.quote(response_object)),
+        response = self._request('/service/%s/version/%s/response_object/%s' % (urllib.quote(service_id, ''), version, urllib.quote(response_object, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -940,21 +942,21 @@ class FastlyClient(object):
             response_object, service_id, version, response.payload['detail']))
 
     def get_vcl_snippet_name(self, service_id, version):
-        response = self._request('/service/%s/version/%s/snippet' % (urllib.quote(service_id), version), 'GET')
+        response = self._request('/service/%s/version/%s/snippet' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
         raise Exception(
             "Error retrieving vcl snippt for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
     def create_vcl_snippet(self, service_id, version, vcl_snippet):
-        response = self._request('/service/%s/version/%s/snippet' % (urllib.quote(service_id), version), 'POST', vcl_snippet)
+        response = self._request('/service/%s/version/%s/snippet' % (urllib.quote(service_id, ''), version), 'POST', vcl_snippet)
 
         if response.status == 200:
             return response.payload
         raise Exception("Error creating VCL snippet '%s' for service %s, version %s (%s)" % (vcl_snippet['name'], service_id, version, response.payload['detail']))
 
     def delete_vcl_snippet(self, service_id, version, snippet):
-        response = self._request('/service/%s/version/%s/snippet/%s' % (urllib.quote(service_id), version, snippet),
+        response = self._request('/service/%s/version/%s/snippet/%s' % (urllib.quote(service_id, ''), version, urllib.quote(snippet, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
@@ -962,7 +964,7 @@ class FastlyClient(object):
             snippet, service_id, version, response.payload['detail']))
 
     def create_settings(self, service_id, version, settings):
-        response = self._request('/service/%s/version/%s/settings' % (urllib.quote(service_id), version), 'PUT', settings)
+        response = self._request('/service/%s/version/%s/settings' % (urllib.quote(service_id, ''), version), 'PUT', settings)
         if response.status == 200:
             return response.payload
         raise Exception("Error creating settings for service %s, version %s (%s)" % (
