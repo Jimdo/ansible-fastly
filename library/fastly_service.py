@@ -247,17 +247,20 @@ class FastlyBackend(FastlyObject):
         'port': dict(required=False, type='int', default=80),
         'address': dict(required=True, type='str', default=None),
         'request_condition': dict(required=False, type='str', default=''),
+        'use_ssl': dict(required=False, type='bool', default=None),
+        'ssl_check_cert': dict(required=False, type='bool', default=None),
         'ssl_hostname': dict(required=False, type='str', default=None),
         'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'ssl_sni_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'shield': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'healthcheck': dict(required=False, type='str', default=None, exclude_empty_str=True),
-        'weight': dict(required=False, type='int', default=100),
-        'connect_timeout': dict(required=False, type='int', default=1000),
-        'first_byte_timeout': dict(required=False, type='int', default=15000),
-        'between_bytes_timeout': dict(required=False, type='int', default=10000),
-        'error_threshold': dict(required=False, type='int', default=0),
-        'max_conn': dict(required=False, type='int', default=200),
+        'weight': dict(required=False, type='int', default=None),
+        'connect_timeout': dict(required=False, type='int', default=None),
+        'first_byte_timeout': dict(required=False, type='int', default=None),
+        'between_bytes_timeout': dict(required=False, type='int', default=None),
+        'error_threshold': dict(required=False, type='int', default=None),
+        'max_conn': dict(required=False, type='int', default=None),
     }
 
     def __init__(self, config, validate_choices):
@@ -265,9 +268,12 @@ class FastlyBackend(FastlyObject):
         self.port = self.read_config(config, validate_choices, 'port')
         self.address = self.read_config(config, validate_choices, 'address')
         self.request_condition = self.read_config(config, validate_choices, 'request_condition')
+        self.use_ssl = self.read_config(config, validate_choices, 'use_ssl')
+        self.ssl_check_cert = self.read_config(config, validate_choices, 'ssl_check_cert')
         self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
         self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
         self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
+        self.ssl_sni_hostname = self.read_config(config, validate_choices, 'ssl_sni_hostname')
         self.shield = self.read_config(config, validate_choices, 'shield')
         self.healthcheck = self.read_config(config, validate_choices, 'healthcheck')
         self.weight = self.read_config(config, validate_choices, 'weight')
@@ -285,8 +291,9 @@ class FastlyCacheSettings(FastlyObject):
     schema = {
         'name': dict(required=True, type='str'),
         'action': dict(required=False, type='str', default=None, choices=['cache', 'pass', 'restart', None]),
-        'cache_condition': dict(required=False, type='str', default=''),
-        'stale_ttl': dict(required=False, type='int', default=0)
+        'cache_condition': dict(required=False, type='str', default=None),
+        'stale_ttl': dict(required=False, type='int', default=None),
+        'ttl': dict(required=False, type='int', default=None)
     }
 
     def __init__(self, config, validate_choices):
@@ -294,6 +301,7 @@ class FastlyCacheSettings(FastlyObject):
         self.action = self.read_config(config, validate_choices, 'action')
         self.cache_condition = self.read_config(config, validate_choices, 'cache_condition')
         self.stale_ttl = self.read_config(config, validate_choices, 'stale_ttl')
+        self.ttl = self.read_config(config, validate_choices, 'ttl')
 
     def sort_key(f):
         return f.name
@@ -349,9 +357,9 @@ class FastlyDirector(FastlyObject):
 class FastlyGzip(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'cache_condition': dict(required=False, type='str', default=''),
-        'content_types': dict(required=False, type='str', default=''),
-        'extensions': dict(required=False, type='str', default=''),
+        'cache_condition': dict(required=False, type='str', default=None),
+        'content_types': dict(required=False, type='str', default=None),
+        'extensions': dict(required=False, type='str', default=None),
     }
 
     def __init__(self, config, validate_choices):
@@ -437,17 +445,17 @@ class FastlyHealthcheck(FastlyObject):
 class FastlyRequestSetting(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'request_condition': dict(required=False, type='str', default=''),
-        'force_miss': dict(required=False, type='int', default=0),
-        'force_ssl': dict(required=False, type='int', default=0),
+        'request_condition': dict(required=False, type='str', default=None),
+        'force_miss': dict(required=False, type='int', default=None),
+        'force_ssl': dict(required=False, type='int', default=None),
         'action': dict(required=False, type='str', default=None, choices=['lookup', 'pass', None]),
-        'bypass_busy_wait': dict(required=False, type='int', default=0),
-        'max_stale_age': dict(required=False, type='int', default=0),
-        'hash_keys': dict(required=False, type='str', default=''),
+        'bypass_busy_wait': dict(required=False, type='int', default=None),
+        'max_stale_age': dict(required=False, type='int', default=None),
+        'hash_keys': dict(required=False, type='str', default=None),
         'xff': dict(required=False, type='str', default=None, choices=['clear', 'leave', 'append', 'append_all', 'overwrite', None]),
-        'timer_support': dict(required=False, type='int', default=0),
-        'geo_headers': dict(required=False, type='int', default=0),
-        'default_host': dict(required=False, type='str', default='')
+        'timer_support': dict(required=False, type='int', default=None),
+        'geo_headers': dict(required=False, type='int', default=None),
+        'default_host': dict(required=False, type='str', default=None)
     }
 
     def __init__(self, config, validate_choices):
@@ -471,11 +479,11 @@ class FastlyRequestSetting(FastlyObject):
 class FastlyResponseObject(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'request_condition': dict(required=False, type='str', default=''),
+        'request_condition': dict(required=False, type='str', default=None),
         'response': dict(required=False, type='str', default='Ok'),
         'status': dict(required=False, type='intstr', default='200'),
-        'content': dict(required=False, type='str', default=''),
-        'content_type': dict(required=False, type='str', default='')
+        'content': dict(required=False, type='str', default=None),
+        'content_type': dict(required=False, type='str', default=None)
     }
 
     def __init__(self, config, validate_choices):
@@ -485,6 +493,22 @@ class FastlyResponseObject(FastlyObject):
         self.status = self.read_config(config, validate_choices, 'status')
         self.content = self.read_config(config, validate_choices, 'content')
         self.content_type = self.read_config(config, validate_choices, 'content_type')
+
+    def sort_key(f):
+        return f.name
+
+
+class FastlyVCL(FastlyObject):
+    schema = {
+        'content': dict(required=False, type='str', default=''),
+        'main': dict(required=False, type='bool', default=True),
+        'name': dict(required=True, type='str', default=None),
+    }
+
+    def __init__(self, config, validate_choices):
+        self.content = self.read_config(config, validate_choices, 'content')
+        self.main = self.read_config(config, validate_choices, 'main')
+        self.name = self.read_config(config, validate_choices, 'name')
 
     def sort_key(f):
         return f.name
@@ -536,6 +560,7 @@ class FastlyConfiguration(object):
         self.headers = []
         self.response_objects = []
         self.request_settings = []
+        self.vcls = []
         self.snippets = []
         self.settings = FastlySettings(dict(), validate_choices)
 
@@ -579,6 +604,10 @@ class FastlyConfiguration(object):
             for response_object in configuration['response_objects']:
                 self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
 
+        if 'vcls' in configuration and configuration['vcls'] is not None:
+            for vcl in configuration['vcls']:
+                self.vcls.append(FastlyVCL(vcl, validate_choices))
+
         if 'snippets' in configuration and configuration['snippets'] is not None:
             for snippet in configuration['snippets']:
                 self.snippets.append(FastlyVclSnippet(snippet, validate_choices))
@@ -597,6 +626,7 @@ class FastlyConfiguration(object):
             and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
             and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
             and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
+            and sorted(self.vcls, key=FastlyVCL.sort_key) == sorted(other.vcls, key=FastlyVCL.sort_key) \
             and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
             and self.settings == other.settings
 
@@ -948,6 +978,14 @@ class FastlyClient(object):
         raise Exception(
             "Error retrieving vcl snippt for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
 
+    def create_vcl(self, service_id, version, vcl):
+        response = self._request('/service/%s/version/%s/vcl' % (service_id, version), 'POST', vcl)
+
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating VCL '%s' for service %s, version %s (%s)" % (vcl['name'], service_id, version, response.payload['detail']))
+
     def create_vcl_snippet(self, service_id, version, vcl_snippet):
         response = self._request('/service/%s/version/%s/snippet' % (urllib.quote(service_id, ''), version), 'POST', vcl_snippet)
 
@@ -1105,6 +1143,9 @@ class FastlyStateEnforcer(object):
         for response_object in configuration.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
+        for vcl in configuration.vcls:
+            self.client.create_vcl(service_id, version_number, vcl)
+
         for vcl_snippet in configuration.snippets:
             self.client.create_vcl_snippet(service_id, version_number, vcl_snippet)
 
@@ -1145,6 +1186,7 @@ class FastlyServiceModule(object):
                 headers=dict(default=None, required=False, type='list'),
                 request_settings=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
+                vcls=dict(default=None, required=False, type='list'),
                 vcl_snippets=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
             ),
@@ -1173,6 +1215,7 @@ class FastlyServiceModule(object):
                 'headers': self.module.params['headers'],
                 'request_settings': self.module.params['request_settings'],
                 'response_objects': self.module.params['response_objects'],
+                'vcls': self.module.params['vcls'],
                 'snippets': self.module.params['vcl_snippets'],
                 'settings': self.module.params['settings']
             })
