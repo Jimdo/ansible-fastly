@@ -514,7 +514,7 @@ class FastlyVclSnippet(FastlyObject):
         return f.name
 
 
-class FastlyS3s(FastlyObject):
+class FastlyS3Logging(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'access_key': dict(required=False, type='str', default=None),
@@ -571,73 +571,21 @@ class FastlySettings(FastlyObject):
             'general.default_ttl': self.general_default_ttl
         }
 
-
 class FastlyConfiguration(object):
-    def __init__(self, configuration, validate_choices=True):
-        self.domains = []
-        self.healthchecks = []
-        self.backends = []
-        self.cache_settings = []
-        self.conditions = []
-        self.directors = []
-        self.gzips = []
-        self.headers = []
-        self.response_objects = []
-        self.request_settings = []
-        self.snippets = []
-        self.s3s = []
-        self.settings = FastlySettings(dict(), validate_choices)
-
-        if 'domains' in configuration and configuration['domains'] is not None:
-            for domain in configuration['domains']:
-                self.domains.append(FastlyDomain(domain, validate_choices))
-
-        if 'healthchecks' in configuration and configuration['healthchecks'] is not None:
-            for healthcheck in configuration['healthchecks']:
-                self.healthchecks.append(FastlyHealthcheck(healthcheck, validate_choices))
-
-        if 'backends' in configuration and configuration['backends'] is not None:
-            for backend in configuration['backends']:
-                self.backends.append(FastlyBackend(backend, validate_choices))
-
-        if 'cache_settings' in configuration and configuration['cache_settings'] is not None:
-            for cache_settings in configuration['cache_settings']:
-                self.cache_settings.append(FastlyCacheSettings(cache_settings, validate_choices))
-
-        if 'conditions' in configuration and configuration['conditions'] is not None:
-            for condition in configuration['conditions']:
-                self.conditions.append(FastlyCondition(condition, validate_choices))
-
-        if 'directors' in configuration and configuration['directors'] is not None:
-            for director in configuration['directors']:
-                self.directors.append(FastlyDirector(director, validate_choices))
-
-        if 'gzips' in configuration and configuration['gzips'] is not None:
-            for gzip in configuration['gzips']:
-                self.gzips.append(FastlyGzip(gzip, validate_choices))
-
-        if 'headers' in configuration and configuration['headers'] is not None:
-            for header in configuration['headers']:
-                self.headers.append(FastlyHeader(header, validate_choices))
-
-        if 'request_settings' in configuration and configuration['request_settings'] is not None:
-            for request_setting in configuration['request_settings']:
-                self.request_settings.append(FastlyRequestSetting(request_setting, validate_choices))
-
-        if 'response_objects' in configuration and configuration['response_objects'] is not None:
-            for response_object in configuration['response_objects']:
-                self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
-
-        if 'snippets' in configuration and configuration['snippets'] is not None:
-            for snippet in configuration['snippets']:
-                self.snippets.append(FastlyVclSnippet(snippet, validate_choices))
-
-        if 's3s' in configuration and configuration['s3s'] is not None:
-            for s3 in configuration['s3s']:
-                self.s3s.append(FastlyS3s(s3, validate_choices))
-
-        if 'settings' in configuration and configuration['settings'] is not None:
-            self.settings = FastlySettings(configuration['settings'], validate_choices)
+    def __init__(self, cfg, validate_choices=True):
+        self.domains = [FastlyDomain(d, validate_choices) for d in cfg.get('domains') or []]
+        self.healthchecks = [FastlyHealthcheck(h, validate_choices) for h in cfg.get('healthchecks') or []]
+        self.backends = [FastlyBackend(b, validate_choices) for b in cfg.get('backends') or []]
+        self.cache_settings = [FastlyCacheSettings(c, validate_choices) for c in cfg.get('cache_settings') or []]
+        self.conditions = [FastlyCondition(c, validate_choices) for c in cfg.get('conditions') or []]
+        self.directors = [FastlyDirector(d, validate_choices) for d in cfg.get('directors') or []]
+        self.gzips = [FastlyGzip(g, validate_choices) for g in cfg.get('gzips') or []]
+        self.headers = [FastlyHeader(h, validate_choices) for h in cfg.get('headers') or []]
+        self.response_objects = [FastlyResponseObject(r, validate_choices) for r in cfg.get('response_objects') or []]
+        self.request_settings = [FastlyRequestSetting(r, validate_choices) for r in cfg.get('request_settings') or []]
+        self.snippets = [FastlyVclSnippet(s, validate_choices) for s in cfg.get('snippets') or []]
+        self.s3s = [FastlyS3Logging(s, validate_choices) for s in cfg.get('s3s') or []]
+        self.settings = FastlySettings(cfg.get('settings', dict()), validate_choices)
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
@@ -651,7 +599,7 @@ class FastlyConfiguration(object):
             and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
             and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
             and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
-            and sorted(self.s3s, key=FastlyS3s.sort_key) == sorted(other.s3s, key=FastlyS3s.sort_key) \
+            and sorted(self.s3s, key=FastlyS3Logging.sort_key) == sorted(other.s3s, key=FastlyS3Logging.sort_key) \
             and self.settings == other.settings
 
     def __ne__(self, other):

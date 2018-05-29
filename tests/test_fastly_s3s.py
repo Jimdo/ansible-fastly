@@ -51,9 +51,9 @@ class TestFastlyS3s(TestCommon):
     def test_fastly_s3s_remove(self):
         s3s_configuration = self.minimal_configuration.copy()
         s3s_configuration.update({
-            's3s': [{
+            's3': [{
                 'name'              : 'test_s3',
-            }]
+            }],
         })
         configuration = FastlyConfiguration(s3s_configuration)
 
