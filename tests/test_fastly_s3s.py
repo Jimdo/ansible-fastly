@@ -24,14 +24,13 @@ class TestFastlyS3s(TestCommon):
                 'redundancy'        : 'standard',
                 'access_key'        : 'ACCESS_KEY',
                 'format'            : '%{%Y-%m-%dT%H:%S.000}t %h "%r" %>s %b',
-                'format_version'    : 2,
             }],
         })
 
         configuration = FastlyConfiguration(s3s_configuration)
         service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
 
-        svc_conf = service.active_version.configuration;
+        svc_conf = service.active_version.configuration
 
         self.assertEqual(svc_conf.s3s[0].name, 'test_s3')
         self.assertEqual(svc_conf.s3s[0].domain, self.FASTLY_TEST_DOMAIN)

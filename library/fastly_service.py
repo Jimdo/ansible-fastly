@@ -521,7 +521,7 @@ class FastlyS3s(FastlyObject):
         'bucket_name': dict(required=False, type='str', default=None),
         'domain': dict(required=False, type='str', default=None),
         'format': dict(required=False, type='str', default='%{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b'),
-        'format_version': dict(required=False, type='int', default=1),
+        'format_version': dict(required=False, type='int', default=2),
         'gzip_level': dict(required=False, type='int', default=0),
         'message_type': dict(required=False, type='str', default="classic", choices=['classic', 'loggly', 'logplex', 'blank', None]),
         'path': dict(required=False, type='str', default='/'),
