@@ -173,6 +173,30 @@ $ ansible-galaxy install Jimdo.fastly
 | content   | true     | string                                  |         |
 | priority  | false    | integer                                 | 100     |
 
+### S3 Logging
+
+[Fastly documentation](https://docs.fastly.com/api/logging#logging_s3)
+
+| Field                             | Required | Type                                           | Default                              |
+|:----------------------------------|:---------|:-----------------------------------------------|:-------------------------------------|
+| name                              | true     | string                                         |                                      |
+| access_key                        | false    | string                                         |                                      |
+| bucket_name                       | false    | string                                         |                                      |
+| domain                            | false    | string                                         |                                      |
+| format                            | false    | string                                         | %{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b |
+| format_version                    | false    | integer                                        | 1                                    |
+| gzip_level                        | false    | integer                                        | 0                                    |
+| message_type                      | false    | enum ('classic', 'loggly', 'logplex', 'blank') | classic                              |
+| path                              | false    | string                                         | /                                    |
+| period                            | false    | integer                                        | 3600                                 |
+| placement                         | false    | string                                         |                                      |
+| redundancy                        | false    | string                                         |                                      |
+| response_condition                | false    | string                                         | ''                                   |
+| secret_key                        | false    | string                                         |                                      |
+| server_side_encryption_kms_key_id | false    | string                                         |                                      |
+| server_side_encryption            | fasle    | string                                         |                                      |
+| timestamp_format                  | false    | string                                         | %Y-%m-%dT%H                          |
+
 ### Settings
 
 [Fastly documentation](https://docs.fastly.com/api/config#settings)
