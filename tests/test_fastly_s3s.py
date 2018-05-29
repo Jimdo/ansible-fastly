@@ -47,6 +47,26 @@ class TestFastlyS3s(TestCommon):
         service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
         self.assertEqual(service.active_version.number, active_version_number)
 
+    @TestCommon.vcr.use_cassette()
+    def test_fastly_s3s_remove(self):
+        s3s_configuration = self.minimal_configuration.copy()
+        s3s_configuration.update({
+            's3s': [{
+                'name'              : 'test_s3',
+            }]
+        })
+        configuration = FastlyConfiguration(s3s_configuration)
+
+        # Configure S3 logging
+        self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, configuration).service
+
+        # Now apply a configuration without S3 logging
+        service = self.enforcer.apply_configuration(self.FASTLY_TEST_SERVICE, FastlyConfiguration(self.minimal_configuration.copy())).service
+        svc_conf = service.active_version.configuration
+
+        self.assertEqual(svc_conf.s3s, [])
+
+
 if __name__ == '__main__':
     unittest.main()
 

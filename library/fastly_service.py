@@ -1017,13 +1017,28 @@ class FastlyClient(object):
         raise Exception("Error deleting vcl snippet %s service %s, version %s (%s)" % (
             snippet, service_id, version, response.payload['detail']))
 
-    def create_s3(self, service_id, version, s3):
+    def get_s3_loggers(self, service_id, version):
+        response = self._request('/service/%s/version/%s/logging/s3' % (urllib.quote(service_id, ''), version), 'GET')
+        if response.status == 200:
+            return response.payload
+        raise Exception(
+            "Error retrieving S3 loggers for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
+
+    def create_s3_logger(self, service_id, version, s3):
         response = self._request('/service/%s/version/%s/logging/s3' % (service_id, version), 'POST', s3)
 
         if response.status == 200:
             return response.payload
         else:
             raise Exception("Error creating S3 logger '%s' for service %s, version %s (%s)" % (s3.name, service_id, version, response.payload['detail']))
+
+    def delete_s3_logger(self, service_id, version, s3_logger):
+        response = self._request('/service/%s/version/%s/logging/s3/%s' % (urllib.quote(service_id, ''), version, urllib.quote(s3_logger, '')),
+                                 'DELETE')
+        if response.status == 200:
+            return response.payload
+        raise Exception("Error deleting S3 logger %s service %s, version %s (%s)" % (
+            s3_logger, service_id, version, response.payload['detail']))
 
     def create_settings(self, service_id, version, settings):
         response = self._request('/service/%s/version/%s/settings' % (urllib.quote(service_id, ''), version), 'PUT', settings)
@@ -1099,6 +1114,7 @@ class FastlyStateEnforcer(object):
         request_settings = self.client.get_request_settings_name(service_id, version_to_delete)
         response_objects = self.client.get_response_objects_name(service_id, version_to_delete)
         snippets = self.client.get_vcl_snippet_name(service_id, version_to_delete)
+        s3_loggers = self.client.get_s3_loggers(service_id, version_to_delete)
 
         for domain_name in domain:
             self.client.delete_domain(service_id, version_to_delete, domain_name['name'])
@@ -1132,6 +1148,9 @@ class FastlyStateEnforcer(object):
 
         for vcl_snippet_name in snippets:
             self.client.delete_vcl_snippet(service_id, version_to_delete, vcl_snippet_name['name'])
+
+        for s3_logger in s3_loggers:
+            self.client.delete_s3_logger(service_id, version_to_delete, s3_logger['name'])
 
     def configure_version(self, service_id, configuration, version_number):
         for domain in configuration.domains:
@@ -1171,7 +1190,7 @@ class FastlyStateEnforcer(object):
             self.client.create_vcl_snippet(service_id, version_number, vcl_snippet)
 
         for s3 in configuration.s3s:
-            self.client.create_s3(service_id, version_number, s3)
+            self.client.create_s3_logger(service_id, version_number, s3)
 
         if configuration.settings:
             self.client.create_settings(service_id, version_number, configuration.settings)
