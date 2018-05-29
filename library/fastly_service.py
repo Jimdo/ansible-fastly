@@ -528,7 +528,7 @@ class FastlyS3s(FastlyObject):
         'period': dict(required=False, type='int', default=3600),
         'placement': dict(required=False, type='str', default=None),
         'redundancy': dict(required=False, type='str', default=None),
-        'response_condition': dict(required=False, type='str', default=''),
+        'response_condition': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'secret_key': dict(required=False, type='str', default=None),
         'server_side_encryption_kms_key_id': dict(required=False, type='str', default=None),
         'server_side_encryption': dict(required=False, type='str', default=None),
