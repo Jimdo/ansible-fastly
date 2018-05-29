@@ -571,6 +571,7 @@ class FastlySettings(FastlyObject):
             'general.default_ttl': self.general_default_ttl
         }
 
+
 class FastlyConfiguration(object):
     def __init__(self, cfg, validate_choices=True):
         self.domains = [FastlyDomain(d, validate_choices) for d in cfg.get('domains') or []]
