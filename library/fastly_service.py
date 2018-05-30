@@ -66,6 +66,10 @@ options:
         required: false
         description:
             - List of S3 loggers
+    syslogs:
+        required: false
+        description:
+            - List of Syslog loggers
     settings:
         required: false
         description:
@@ -163,6 +167,7 @@ class FastlyObjectEncoder(json.JSONEncoder):
 
 class FastlyValidationError(RuntimeError):
     def __init__(self, cls, message):
+        super(FastlyValidationError, self).__init__(message)
         self.cls = cls
         self.message = message
 
@@ -170,9 +175,6 @@ class FastlyValidationError(RuntimeError):
 class FastlyObject(object):
     schema = {}
     sort_key = None
-
-    def to_json(self):
-        return self.__dict__
 
     def read_config(self, config, validate_choices, param_name):
         required = self.schema[param_name].get('required', True)
@@ -226,6 +228,9 @@ class FastlyObject(object):
             value = None
 
         return value
+
+    def to_json(self):
+        return {k: v for k, v in self.__dict__.iteritems() if v or not self.schema[k].get('omit_empty', False)}
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -558,6 +563,44 @@ class FastlyS3Logging(FastlyObject):
         return f.name
 
 
+class FastlySyslogLogging(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str'),
+        'hostname': dict(required=False, type='str'),
+        'port': dict(required=True, type='int'),
+        'address': dict(required=True, type='str', default=None, exclude_empty_str=True),
+        'format_version': dict(required=False, type='int', default=2),
+        'format': dict(required=False, type='str', default='%{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b'),
+        'ipv4': dict(required=False, type='str', default=None, exclude_empty_str=True, omit_empty=True),
+        'message_type': dict(required=False, type='str', default="classic", choices=['classic', 'loggly', 'logplex', 'blank', None]),
+        'placement': dict(required=False, type='str', default=None),
+        'response_condition': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'tls_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'tls_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'token': dict(required=False, type='str', default=None),
+        'use_tls': dict(required=False, type='int', default=0),
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.address = self.read_config(config, validate_choices, 'address')
+        self.format_version = self.read_config(config, validate_choices, 'format_version')
+        self.format = self.read_config(config, validate_choices, 'format')
+        self.hostname = self.read_config(config, validate_choices, 'hostname') or self.address
+        self.ipv4 = self.read_config(config, validate_choices, 'ipv4')
+        self.message_type = self.read_config(config, validate_choices, 'message_type')
+        self.placement = self.read_config(config, validate_choices, 'placement')
+        self.port = self.read_config(config, validate_choices, 'port')
+        self.response_condition = self.read_config(config, validate_choices, 'response_condition')
+        self.tls_ca_cert = self.read_config(config, validate_choices, 'tls_ca_cert')
+        self.tls_hostname = self.read_config(config, validate_choices, 'tls_hostname')
+        self.token = self.read_config(config, validate_choices, 'token')
+        self.use_tls = self.read_config(config, validate_choices, 'use_tls')
+
+    def sort_key(f):
+        return f.name
+
+
 class FastlySettings(FastlyObject):
     schema = {
         'general.default_ttl': dict(required=False, type='int', default=3600)
@@ -586,6 +629,7 @@ class FastlyConfiguration(object):
         self.request_settings = [FastlyRequestSetting(r, validate_choices) for r in cfg.get('request_settings') or []]
         self.snippets = [FastlyVclSnippet(s, validate_choices) for s in cfg.get('snippets') or []]
         self.s3s = [FastlyS3Logging(s, validate_choices) for s in cfg.get('s3s') or []]
+        self.syslogs = [FastlySyslogLogging(s, validate_choices) for s in cfg.get('syslogs') or []]
         self.settings = FastlySettings(cfg.get('settings', dict()), validate_choices)
 
     def __eq__(self, other):
@@ -601,6 +645,7 @@ class FastlyConfiguration(object):
             and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
             and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
             and sorted(self.s3s, key=FastlyS3Logging.sort_key) == sorted(other.s3s, key=FastlyS3Logging.sort_key) \
+            and sorted(self.syslogs, key=FastlySyslogLogging.sort_key) == sorted(other.syslogs, key=FastlySyslogLogging.sort_key) \
             and self.settings == other.settings
 
     def __ne__(self, other):
@@ -645,7 +690,6 @@ class FastlyClient(object):
         body = None
         if payload is not None:
             body = json.dumps(payload, cls=FastlyObjectEncoder)
-
         conn = httplib.HTTPSConnection(self.FASTLY_API_HOST)
         conn.request(method, path, body, headers)
         return FastlyResponse(conn.getresponse(), method, path)
@@ -989,6 +1033,29 @@ class FastlyClient(object):
         raise Exception("Error deleting S3 logger %s service %s, version %s (%s)" % (
             s3_logger, service_id, version, response.payload['detail']))
 
+    def get_syslog_loggers(self, service_id, version):
+        response = self._request('/service/%s/version/%s/logging/syslog' % (urllib.quote(service_id, ''), version), 'GET')
+        if response.status == 200:
+            return response.payload
+        raise Exception(
+            "Error retrieving syslog loggers for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
+
+    def create_syslog_logger(self, service_id, version, syslog):
+        response = self._request('/service/%s/version/%s/logging/syslog' % (service_id, version), 'POST', syslog)
+
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating syslog logger '%s' for service %s, version %s (%s)" % (syslog.name, service_id, version, response.payload['detail']))
+
+    def delete_syslog_logger(self, service_id, version, syslog_logger):
+        response = self._request('/service/%s/version/%s/logging/syslog/%s' % (urllib.quote(service_id, ''), version, urllib.quote(syslog_logger, '')),
+                                 'DELETE')
+        if response.status == 200:
+            return response.payload
+        raise Exception("Error deleting syslog logger %s service %s, version %s (%s)" % (
+            syslog_logger, service_id, version, response.payload['detail']))
+
     def create_settings(self, service_id, version, settings):
         response = self._request('/service/%s/version/%s/settings' % (urllib.quote(service_id, ''), version), 'PUT', settings)
         if response.status == 200:
@@ -1064,6 +1131,7 @@ class FastlyStateEnforcer(object):
         response_objects = self.client.get_response_objects_name(service_id, version_to_delete)
         snippets = self.client.get_vcl_snippet_name(service_id, version_to_delete)
         s3_loggers = self.client.get_s3_loggers(service_id, version_to_delete)
+        syslog_loggers = self.client.get_syslog_loggers(service_id, version_to_delete)
 
         for domain_name in domain:
             self.client.delete_domain(service_id, version_to_delete, domain_name['name'])
@@ -1098,8 +1166,11 @@ class FastlyStateEnforcer(object):
         for vcl_snippet_name in snippets:
             self.client.delete_vcl_snippet(service_id, version_to_delete, vcl_snippet_name['name'])
 
-        for s3_logger in s3_loggers:
-            self.client.delete_s3_logger(service_id, version_to_delete, s3_logger['name'])
+        for logger in s3_loggers:
+            self.client.delete_s3_logger(service_id, version_to_delete, logger['name'])
+
+        for logger in syslog_loggers:
+            self.client.delete_syslog_logger(service_id, version_to_delete, logger['name'])
 
     def configure_version(self, service_id, configuration, version_number):
         for domain in configuration.domains:
@@ -1138,8 +1209,11 @@ class FastlyStateEnforcer(object):
         for vcl_snippet in configuration.snippets:
             self.client.create_vcl_snippet(service_id, version_number, vcl_snippet)
 
-        for s3 in configuration.s3s:
-            self.client.create_s3_logger(service_id, version_number, s3)
+        for logger in configuration.s3s:
+            self.client.create_s3_logger(service_id, version_number, logger)
+
+        for logger in configuration.syslogs:
+            self.client.create_syslog_logger(service_id, version_number, logger)
 
         if configuration.settings:
             self.client.create_settings(service_id, version_number, configuration.settings)
@@ -1180,6 +1254,7 @@ class FastlyServiceModule(object):
                 response_objects=dict(default=None, required=False, type='list'),
                 vcl_snippets=dict(default=None, required=False, type='list'),
                 s3s=dict(default=None, required=False, type='list'),
+                syslog=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
             ),
             supports_check_mode=False
@@ -1209,6 +1284,7 @@ class FastlyServiceModule(object):
                 'response_objects': self.module.params['response_objects'],
                 'snippets': self.module.params['vcl_snippets'],
                 's3s': self.module.params['s3s'],
+                'syslogs': self.module.params['syslogs'],
                 'settings': self.module.params['settings']
             })
         except FastlyValidationError as err:
