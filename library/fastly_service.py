@@ -184,7 +184,7 @@ class FastlyObject(object):
         choices = self.schema[param_name].get('choices', None)
         exclude_empty_str = self.schema[param_name].get('exclude_empty_str', False)
 
-        if param_name in config:
+        if config and param_name in config:
             value = config[param_name]
         else:
             value = default
@@ -631,7 +631,7 @@ class FastlyConfiguration(object):
         self.snippets = [FastlyVclSnippet(s, validate_choices) for s in cfg.get('snippets') or []]
         self.s3s = [FastlyS3Logging(s, validate_choices) for s in cfg.get('s3s') or []]
         self.syslogs = [FastlySyslogLogging(s, validate_choices) for s in cfg.get('syslogs') or []]
-        self.settings = FastlySettings(cfg.get('settings', dict()), validate_choices)
+        self.settings = FastlySettings(cfg.get('settings'), validate_choices)
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
