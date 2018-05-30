@@ -144,6 +144,7 @@ import httplib
 import urllib
 import json
 import os
+import traceback
 
 from ansible.module_utils.basic import *  # noqa: F403
 
@@ -1290,7 +1291,7 @@ class FastlyServiceModule(object):
         except FastlyValidationError as err:
             self.module.fail_json(msg='Error in ' + err.cls + ': ' + err.message)
         except Exception as err:
-            self.module.fail_json(msg=err.message)
+            self.module.fail_json(msg=err.message, trace=traceback.format_exc())
 
     def run(self):
         try:
@@ -1311,7 +1312,7 @@ class FastlyServiceModule(object):
                 self.module.exit_json(changed=result.changed, service_id=result.service.id, actions=result.actions)
 
         except Exception as err:
-            self.module.fail_json(msg=err.message)
+            self.module.fail_json(msg=err.message, trace=traceback.format_exc())
 
 
 def main():
