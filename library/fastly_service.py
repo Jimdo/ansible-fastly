@@ -158,7 +158,7 @@ class FastlyResponse(object):
             raise Exception("Unable to parse HTTP response: method: %s, path: %s, status: %s, body: %s, headers: %s" % (method, path, http_response.status, http_response.read(), http_response.getheaders()))
 
     def error(self):
-        return self.payload.get('detail', self.payload.get('msg'))
+        return self.payload.get('detail') or self.payload.get('msg')
 
 
 class FastlyObjectEncoder(json.JSONEncoder):
