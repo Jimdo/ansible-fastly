@@ -30,6 +30,8 @@ $ ansible-galaxy install Jimdo.fastly
 | request_settings     | false    | List of request settings                                                                      |         |
 | response_objects     | false    | List of response objects                                                                      |         |
 | settings             | false    | Settings object                                                                               |         |
+| s3s                  | false    | List of S3 loggers                                                                            |         |
+| syslogs              | false    | List of Syslog loggers                                                                        |         |
 | vcl_snippets         | false    | List of VCL snippets                                                                          |         |
 
 ### Backend
@@ -184,7 +186,7 @@ $ ansible-galaxy install Jimdo.fastly
 | bucket_name                       | false    | string                                         |                                      |
 | domain                            | false    | string                                         |                                      |
 | format                            | false    | string                                         | %{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b |
-| format_version                    | false    | integer                                        | 1                                    |
+| format_version                    | false    | integer                                        | 2                                    |
 | gzip_level                        | false    | integer                                        | 0                                    |
 | message_type                      | false    | enum ('classic', 'loggly', 'logplex', 'blank') | classic                              |
 | path                              | false    | string                                         | /                                    |
@@ -196,6 +198,28 @@ $ ansible-galaxy install Jimdo.fastly
 | server_side_encryption_kms_key_id | false    | string                                         |                                      |
 | server_side_encryption            | fasle    | string                                         |                                      |
 | timestamp_format                  | false    | string                                         | %Y-%m-%dT%H                          |
+
+### Syslog Logging
+
+[Fastly documentation](https://docs.fastly.com/api/logging#logging_syslog)
+
+| Field                             | Required | Type                                           | Default                              |
+|:----------------------------------|:---------|:-----------------------------------------------|:-------------------------------------|
+| name                              | true     | string                                         |                                      |
+| address                           | true     | string                                         |                                      |
+| format                            | false    | string                                         | %{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b |
+| format_version                    | false    | integer                                        | 2                                    |
+| hostname                          | false    | string                                         |                                      |
+| ipv4                              | false    | string                                         |                                      |
+| message_type                      | false    | enum ('classic', 'loggly', 'logplex', 'blank') | classic                              |
+| placement                         | false    | string                                         |                                      |
+| port                              | true     | int                                            |                                      |
+| response_condition                | false    | string                                         | ''                                   |
+| tls_ca_cert                       | false    | string                                         |                                      |
+| tls_hostname                      | false    | string                                         |                                      |
+| token                             | false    | string                                         |                                      |
+| use_tls                           | false    | int                                            | 0                                    |
+
 
 ### Settings
 
