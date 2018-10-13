@@ -70,6 +70,10 @@ options:
         required: false
         description:
             - List of Syslog loggers
+    upload_vcls:
+        required: false
+        description:
+            - Upload VCL
     settings:
         required: false
         description:
@@ -144,7 +148,6 @@ import httplib
 import urllib
 import json
 import os
-import traceback
 
 from ansible.module_utils.basic import *  # noqa: F403
 
@@ -263,6 +266,10 @@ class FastlyBackend(FastlyObject):
         'ssl_hostname': dict(required=False, type='str', default=None),
         'ssl_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'ssl_cert_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'ssl_sni_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'ssl_check_cert': dict(required=False, type='int', default=None),
+        'min_tls_version': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'max_tls_version': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'shield': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'healthcheck': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'weight': dict(required=False, type='int', default=100),
@@ -281,6 +288,10 @@ class FastlyBackend(FastlyObject):
         self.ssl_hostname = self.read_config(config, validate_choices, 'ssl_hostname')
         self.ssl_ca_cert = self.read_config(config, validate_choices, 'ssl_ca_cert')
         self.ssl_cert_hostname = self.read_config(config, validate_choices, 'ssl_cert_hostname')
+        self.ssl_sni_hostname = self.read_config(config, validate_choices, 'ssl_sni_hostname')
+        self.ssl_check_cert = self.read_config(config, validate_choices, 'ssl_check_cert')
+        self.min_tls_version = self.read_config(config, validate_choices, 'min_tls_version')
+        self.max_tls_version = self.read_config(config, validate_choices, 'max_tls_version')
         self.shield = self.read_config(config, validate_choices, 'shield')
         self.healthcheck = self.read_config(config, validate_choices, 'healthcheck')
         self.weight = self.read_config(config, validate_choices, 'weight')
@@ -415,11 +426,11 @@ class FastlyHeader(FastlyObject):
 
 class FastlyHealthcheck(FastlyObject):
     schema = {
-        'name': dict(required=True, type='str', default=None),
+        'name': dict(required=False, type='str', default=None),
         'check_interval': dict(required=False, type='int', default=None),
         'comment': dict(required=False, type='str', default=''),
         'expected_response': dict(required=False, type='int', default=200),
-        'host': dict(required=True, type='str', default=None),
+        'host': dict(required=False, type='str', default=None),
         'http_version': dict(required=False, type='str', default='1.1'),
         'initial': dict(required=False, type='int', default=None),
         'method': dict(required=False, type='str', default='HEAD'),
@@ -498,6 +509,20 @@ class FastlyResponseObject(FastlyObject):
         self.status = self.read_config(config, validate_choices, 'status')
         self.content = self.read_config(config, validate_choices, 'content')
         self.content_type = self.read_config(config, validate_choices, 'content_type')
+
+    def sort_key(f):
+        return f.name
+
+
+class FastlyVclUpload(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'content': dict(required=True, type='str', default=None)
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.content = self.read_config(config, validate_choices, 'content')
 
     def sort_key(f):
         return f.name
@@ -604,6 +629,41 @@ class FastlySyslogLogging(FastlyObject):
     def sort_key(f):
         return f.name
 
+class FastlyFTPLogging(FastlyObject):
+    schema = {
+        'name': dict(required=False, type='str'),
+        'hostname': dict(required=False, type='str'),
+        'port': dict(required=False, type='int'),
+        'address': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'format_version': dict(required=False, type='int', default=2),
+        'format': dict(required=False, type='str', default='%{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b'),
+        'ipv4': dict(required=False, type='str', default=None, exclude_empty_str=True, omit_empty=True),
+        'message_type': dict(required=False, type='str', default="classic", choices=['classic', 'loggly', 'logplex', 'blank', None]),
+        'placement': dict(required=False, type='str', default=None),
+        'response_condition': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'user': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'password': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'path': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'timestamp_format': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'period': dict(required=False, type='str', default=None, exclude_empty_str=True),
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.address = self.read_config(config, validate_choices, 'address')
+        self.format_version = self.read_config(config, validate_choices, 'format_version')
+        self.format = self.read_config(config, validate_choices, 'format')
+        self.hostname = self.read_config(config, validate_choices, 'hostname') or self.address
+        self.ipv4 = self.read_config(config, validate_choices, 'ipv4')
+        self.message_type = self.read_config(config, validate_choices, 'message_type')
+        self.placement = self.read_config(config, validate_choices, 'placement')
+        self.port = self.read_config(config, validate_choices, 'port')
+        self.response_condition = self.read_config(config, validate_choices, 'response_condition')
+        self.user = self.read_config(config, validate_choices, 'user')
+        self.password = self.read_config(config, validate_choices, 'password')
+
+    def sort_key(f):
+        return f.name
 
 class FastlySettings(FastlyObject):
     schema = {
@@ -631,26 +691,30 @@ class FastlyConfiguration(object):
         self.headers = [FastlyHeader(h, validate_choices) for h in cfg.get('headers') or []]
         self.response_objects = [FastlyResponseObject(r, validate_choices) for r in cfg.get('response_objects') or []]
         self.request_settings = [FastlyRequestSetting(r, validate_choices) for r in cfg.get('request_settings') or []]
+        self.uploads = [FastlyVclUpload(s, validate_choices) for s in cfg.get('uploads') or []]
         self.snippets = [FastlyVclSnippet(s, validate_choices) for s in cfg.get('snippets') or []]
         self.s3s = [FastlyS3Logging(s, validate_choices) for s in cfg.get('s3s') or []]
         self.syslogs = [FastlySyslogLogging(s, validate_choices) for s in cfg.get('syslogs') or []]
+        self.ftplogs = [FastlyFTPLogging(s, validate_choices) for s in cfg.get('ftplogs') or []]
         self.settings = FastlySettings(cfg.get('settings'), validate_choices)
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
-            and sorted(self.healthchecks, key=FastlyHealthcheck.sort_key) == sorted(other.healthchecks, key=FastlyHealthcheck.sort_key) \
-            and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
-            and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
-            and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
-            and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
-            and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
-            and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
-            and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
-            and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
-            and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
-            and sorted(self.s3s, key=FastlyS3Logging.sort_key) == sorted(other.s3s, key=FastlyS3Logging.sort_key) \
-            and sorted(self.syslogs, key=FastlySyslogLogging.sort_key) == sorted(other.syslogs, key=FastlySyslogLogging.sort_key) \
-            and self.settings == other.settings
+               and sorted(self.healthchecks, key=FastlyHealthcheck.sort_key) == sorted(other.healthchecks, key=FastlyHealthcheck.sort_key) \
+               and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
+               and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
+               and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
+               and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
+               and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
+               and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
+               and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
+               and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
+               and sorted(self.uploads, key=FastlyVclUpload.sort_key) == sorted(other.uploads, key=FastlyVclUpload.sort_key) \
+               and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
+               and sorted(self.s3s, key=FastlyS3Logging.sort_key) == sorted(other.s3s, key=FastlyS3Logging.sort_key) \
+               and sorted(self.syslogs, key=FastlySyslogLogging.sort_key) == sorted(other.syslogs, key=FastlySyslogLogging.sort_key) \
+               and sorted(self.ftplogs, key=FastlyFTPLogging.sort_key) == sorted(other.ftplogs, key=FastlyFTPLogging.sort_key) \
+               and self.settings == other.settings
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -992,6 +1056,36 @@ class FastlyClient(object):
         raise Exception("Error deleting response_object %s service %s, version %s (%s)" % (
             response_object, service_id, version, response.error()))
 
+    def get_custom_vcl(self, service_id, version):
+        response = self._request('/service/%s/version/%s/vcl' % (service_id, version), 'GET')
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception(
+                "Error retrieving vcl name for service %s, version %s (%s)" % (
+                    service_id, version, response.payload['detail']))
+
+    def create_custom_vcl(self, service_id, version, upload_vcl):
+        response = self._request('/service/%s/version/%s/vcl' % (urllib.quote(service_id, ''), version), 'POST', upload_vcl)
+
+        if response.status == 200:
+            response = self._request('/service/%s/version/%s/vcl/Main.vcl/main' % (urllib.quote(service_id, ''), version), 'PUT', upload_vcl)
+            if response.status == 200:
+                return response.payload
+            else:
+                raise Exception("Error uploading VCL '%s' for service %s, version %s (%s)" % (upload_vcl['name'], service_id, version, response.payload['detail']))
+        else:
+            raise Exception("Error uploading VCL '%s' for service %s, version %s (%s)" % (upload_vcl['name'], service_id, version, response.payload['detail']))
+
+    def delete_custom_vcl(self, service_id, version, vcl):
+        response = self._request('/service/%s/version/%s/vcl/%s' % (service_id, version, vcl),
+                                 'DELETE')
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error deleting vcl %s service %s, version %s (%s)" % (
+                vcl, service_id, version, response.payload['detail']))
+
     def get_vcl_snippet_name(self, service_id, version):
         response = self._request('/service/%s/version/%s/snippet' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
@@ -1058,6 +1152,29 @@ class FastlyClient(object):
         if response.status == 200:
             return response.payload
         raise Exception("Error deleting syslog logger %s service %s, version %s (%s)" % (
+            syslog_logger, service_id, version, response.error()))
+
+    def get_ftp_loggers(self, service_id, version):
+        response = self._request('/service/%s/version/%s/logging/ftp' % (urllib.quote(service_id, ''), version), 'GET')
+        if response.status == 200:
+            return response.payload
+        raise Exception(
+            "Error retrieving ftp loggers for service %s, version %s (%s)" % (service_id, version, response.error()))
+
+    def create_ftp_logger(self, service_id, version, syslog):
+        response = self._request('/service/%s/version/%s/logging/ftp' % (service_id, version), 'POST', syslog)
+
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating ftp logger '%s' for service %s, version %s (%s)" % (syslog.name, service_id, version, response.error()))
+
+    def delete_ftp_logger(self, service_id, version, syslog_logger):
+        response = self._request('/service/%s/version/%s/logging/ftp/%s' % (urllib.quote(service_id, ''), version, urllib.quote(syslog_logger, '')),
+                                 'DELETE')
+        if response.status == 200:
+            return response.payload
+        raise Exception("Error deleting ftp logger %s service %s, version %s (%s)" % (
             syslog_logger, service_id, version, response.error()))
 
     def create_settings(self, service_id, version, settings):
@@ -1133,9 +1250,11 @@ class FastlyStateEnforcer(object):
         headers = self.client.get_header_name(service_id, version_to_delete)
         request_settings = self.client.get_request_settings_name(service_id, version_to_delete)
         response_objects = self.client.get_response_objects_name(service_id, version_to_delete)
+        vcl = self.client.get_custom_vcl(service_id, version_to_delete)
         snippets = self.client.get_vcl_snippet_name(service_id, version_to_delete)
         s3_loggers = self.client.get_s3_loggers(service_id, version_to_delete)
         syslog_loggers = self.client.get_syslog_loggers(service_id, version_to_delete)
+        ftp_loggers = self.client.get_ftp_loggers(service_id, version_to_delete)
 
         for domain_name in domain:
             self.client.delete_domain(service_id, version_to_delete, domain_name['name'])
@@ -1167,6 +1286,9 @@ class FastlyStateEnforcer(object):
         for response_object_name in response_objects:
             self.client.delete_response_object(service_id, version_to_delete, response_object_name['name'])
 
+        for custom_vcl_name in vcl:
+            self.client.delete_custom_vcl(service_id, version_to_delete, custom_vcl_name['name'])
+
         for vcl_snippet_name in snippets:
             self.client.delete_vcl_snippet(service_id, version_to_delete, vcl_snippet_name['name'])
 
@@ -1176,13 +1298,17 @@ class FastlyStateEnforcer(object):
         for logger in syslog_loggers:
             self.client.delete_syslog_logger(service_id, version_to_delete, logger['name'])
 
+        for logger in ftp_loggers:
+            self.client.delete_ftp_logger(service_id, version_to_delete, logger['name'])
+
     def configure_version(self, service_id, configuration, version_number):
         for domain in configuration.domains:
             self.client.create_domain(service_id, version_number, domain)
 
         # create healthchecks before backends
         for healthcheck in configuration.healthchecks:
-            self.client.create_healthcheck(service_id, version_number, healthcheck)
+            if healthcheck.name:
+                self.client.create_healthcheck(service_id, version_number, healthcheck)
 
         # create conditions before dependencies (e.g. cache_settings)
         for condition in configuration.conditions:
@@ -1210,6 +1336,9 @@ class FastlyStateEnforcer(object):
         for response_object in configuration.response_objects:
             self.client.create_response_object(service_id, version_number, response_object)
 
+        for upload_vcl in configuration.uploads:
+            self.client.create_custom_vcl(service_id, version_number, upload_vcl)
+
         for vcl_snippet in configuration.snippets:
             self.client.create_vcl_snippet(service_id, version_number, vcl_snippet)
 
@@ -1218,6 +1347,10 @@ class FastlyStateEnforcer(object):
 
         for logger in configuration.syslogs:
             self.client.create_syslog_logger(service_id, version_number, logger)
+
+        for logger in configuration.ftplogs:
+            if logger.name:
+                self.client.create_ftp_logger(service_id, version_number, logger)
 
         if configuration.settings:
             self.client.create_settings(service_id, version_number, configuration.settings)
@@ -1256,9 +1389,11 @@ class FastlyServiceModule(object):
                 headers=dict(default=None, required=False, type='list'),
                 request_settings=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
+                upload_vcls=dict(default=None, required=False, type='list'),
                 vcl_snippets=dict(default=None, required=False, type='list'),
                 s3s=dict(default=None, required=False, type='list'),
                 syslogs=dict(default=None, required=False, type='list'),
+                ftplogs=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
             ),
             supports_check_mode=False
@@ -1286,9 +1421,11 @@ class FastlyServiceModule(object):
                 'headers': self.module.params['headers'],
                 'request_settings': self.module.params['request_settings'],
                 'response_objects': self.module.params['response_objects'],
+                'uploads': self.module.params['upload_vcls'],
                 'snippets': self.module.params['vcl_snippets'],
                 's3s': self.module.params['s3s'],
                 'syslogs': self.module.params['syslogs'],
+                'ftplogs': self.module.params['ftplogs'],
                 'settings': self.module.params['settings']
             })
         except FastlyValidationError as err:
