@@ -62,6 +62,14 @@ options:
         required: false
         description:
             - List of VCL snippets
+    s3s:
+        required: false
+        description:
+            - List of S3 loggers
+    syslogs:
+        required: false
+        description:
+            - List of Syslog loggers
     upload_vcls:
         required: false
         description:
@@ -145,9 +153,15 @@ from ansible.module_utils.basic import *  # noqa: F403
 
 
 class FastlyResponse(object):
-    def __init__(self, http_response):
+    def __init__(self, http_response, method, path):
         self.status = http_response.status
-        self.payload = json.loads(http_response.read())
+        try:
+            self.payload = json.loads(http_response.read())
+        except Exception:
+            raise Exception("Unable to parse HTTP response: method: %s, path: %s, status: %s, body: %s, headers: %s" % (method, path, http_response.status, http_response.read(), http_response.getheaders()))
+
+    def error(self):
+        return self.payload.get('detail') or self.payload.get('msg')
 
 
 class FastlyObjectEncoder(json.JSONEncoder):
@@ -160,6 +174,7 @@ class FastlyObjectEncoder(json.JSONEncoder):
 
 class FastlyValidationError(RuntimeError):
     def __init__(self, cls, message):
+        super(FastlyValidationError, self).__init__(message)
         self.cls = cls
         self.message = message
 
@@ -168,9 +183,6 @@ class FastlyObject(object):
     schema = {}
     sort_key = None
 
-    def to_json(self):
-        return self.__dict__
-
     def read_config(self, config, validate_choices, param_name):
         required = self.schema[param_name].get('required', True)
         param_type = self.schema[param_name].get('type', 'str')
@@ -178,7 +190,7 @@ class FastlyObject(object):
         choices = self.schema[param_name].get('choices', None)
         exclude_empty_str = self.schema[param_name].get('exclude_empty_str', False)
 
-        if param_name in config:
+        if config and param_name in config:
             value = config[param_name]
         else:
             value = default
@@ -223,6 +235,9 @@ class FastlyObject(object):
             value = None
 
         return value
+
+    def to_json(self):
+        return {k: v for k, v in self.__dict__.iteritems() if v or not self.schema[k].get('omit_empty', False)}
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -517,7 +532,7 @@ class FastlyVclSnippet(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
         'dynamic': dict(required=False, type='int', default=0),
-        'type': dict(required=False, type='str', default='None'),
+        'type': dict(required=False, type='str', default='init'),
         'content': dict(required=True, type='str', default=None),
         'priority': dict(required=False, type='int', default=100)
     }
@@ -532,27 +547,84 @@ class FastlyVclSnippet(FastlyObject):
     def sort_key(f):
         return f.name
 
-class Fastlysyslog(FastlyObject):
+
+class FastlyS3Logging(FastlyObject):
     schema = {
         'name': dict(required=True, type='str', default=None),
-        'format': dict(required=True, type='str', default=None),
-        'hostname': dict(required=True, type='str', default=None),
-        'port': dict(required=True, type='int', default=None),
-        'token': dict(required=False, type='str', default=None),
-        'use_tls': dict(required=False, type='str', default=None),
-        'tls_ca_cert': dict(required=False, type='str', default=None),
-        'tls_hostname': dict(required=False, type='str', default=None)
+        'access_key': dict(required=False, type='str', default=None),
+        'bucket_name': dict(required=False, type='str', default=None),
+        'domain': dict(required=False, type='str', default=None),
+        'format': dict(required=False, type='str', default='%{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b'),
+        'format_version': dict(required=False, type='int', default=2),
+        'gzip_level': dict(required=False, type='int', default=0),
+        'message_type': dict(required=False, type='str', default="classic", choices=['classic', 'loggly', 'logplex', 'blank', None]),
+        'path': dict(required=False, type='str', default='/'),
+        'period': dict(required=False, type='int', default=3600),
+        'placement': dict(required=False, type='str', default=None),
+        'redundancy': dict(required=False, type='str', default=None),
+        'response_condition': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'secret_key': dict(required=False, type='str', default=None),
+        'server_side_encryption_kms_key_id': dict(required=False, type='str', default=None),
+        'server_side_encryption': dict(required=False, type='str', default=None),
+        'timestamp_format': dict(required=False, type='str', default='%Y-%m-%dT%H'),
     }
 
     def __init__(self, config, validate_choices):
         self.name = self.read_config(config, validate_choices, 'name')
+        self.access_key = self.read_config(config, validate_choices, 'access_key')
+        self.bucket_name = self.read_config(config, validate_choices, 'bucket_name')
+        self.domain = self.read_config(config, validate_choices, 'domain')
         self.format = self.read_config(config, validate_choices, 'format')
-        self.hostname = self.read_config(config, validate_choices, 'hostname')
+        self.format_version = self.read_config(config, validate_choices, 'format_version')
+        self.gzip_level = self.read_config(config, validate_choices, 'gzip_level')
+        self.message_type = self.read_config(config, validate_choices, 'message_type')
+        self.path = self.read_config(config, validate_choices, 'path')
+        self.period = self.read_config(config, validate_choices, 'period')
+        self.placement = self.read_config(config, validate_choices, 'placement')
+        self.redundancy = self.read_config(config, validate_choices, 'redundancy')
+        self.response_condition = self.read_config(config, validate_choices, 'response_condition')
+        self.secret_key = self.read_config(config, validate_choices, 'secret_key')
+        self.server_side_encryption_kms_key_id = self.read_config(config, validate_choices, 'server_side_encryption_kms_key_id')
+        self.server_side_encryption = self.read_config(config, validate_choices, 'server_side_encryption')
+        self.timestamp_format = self.read_config(config, validate_choices, 'timestamp_format')
+
+    def sort_key(f):
+        return f.name
+
+
+class FastlySyslogLogging(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str'),
+        'hostname': dict(required=False, type='str'),
+        'port': dict(required=True, type='int'),
+        'address': dict(required=True, type='str', default=None, exclude_empty_str=True),
+        'format_version': dict(required=False, type='int', default=2),
+        'format': dict(required=False, type='str', default='%{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b'),
+        'ipv4': dict(required=False, type='str', default=None, exclude_empty_str=True, omit_empty=True),
+        'message_type': dict(required=False, type='str', default="classic", choices=['classic', 'loggly', 'logplex', 'blank', None]),
+        'placement': dict(required=False, type='str', default=None),
+        'response_condition': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'tls_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'tls_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'token': dict(required=False, type='str', default=None),
+        'use_tls': dict(required=False, type='int', default=0),
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.address = self.read_config(config, validate_choices, 'address')
+        self.format_version = self.read_config(config, validate_choices, 'format_version')
+        self.format = self.read_config(config, validate_choices, 'format')
+        self.hostname = self.read_config(config, validate_choices, 'hostname') or self.address
+        self.ipv4 = self.read_config(config, validate_choices, 'ipv4')
+        self.message_type = self.read_config(config, validate_choices, 'message_type')
+        self.placement = self.read_config(config, validate_choices, 'placement')
         self.port = self.read_config(config, validate_choices, 'port')
-        self.token = self.read_config(config, validate_choices, 'token')
-        self.use_tls = self.read_config(config, validate_choices, 'use_tls')
+        self.response_condition = self.read_config(config, validate_choices, 'response_condition')
         self.tls_ca_cert = self.read_config(config, validate_choices, 'tls_ca_cert')
         self.tls_hostname = self.read_config(config, validate_choices, 'tls_hostname')
+        self.token = self.read_config(config, validate_choices, 'token')
+        self.use_tls = self.read_config(config, validate_choices, 'use_tls')
 
     def sort_key(f):
         return f.name
@@ -573,93 +645,39 @@ class FastlySettings(FastlyObject):
 
 
 class FastlyConfiguration(object):
-    def __init__(self, configuration, validate_choices=True):
-        self.domains = []
-        self.healthchecks = []
-        self.backends = []
-        self.cache_settings = []
-        self.conditions = []
-        self.directors = []
-        self.gzips = []
-        self.headers = []
-        self.response_objects = []
-        self.request_settings = []
+    def __init__(self, cfg, validate_choices=True):
+        self.domains = [FastlyDomain(d, validate_choices) for d in cfg.get('domains') or []]
+        self.healthchecks = [FastlyHealthcheck(h, validate_choices) for h in cfg.get('healthchecks') or []]
+        self.backends = [FastlyBackend(b, validate_choices) for b in cfg.get('backends') or []]
+        self.cache_settings = [FastlyCacheSettings(c, validate_choices) for c in cfg.get('cache_settings') or []]
+        self.conditions = [FastlyCondition(c, validate_choices) for c in cfg.get('conditions') or []]
+        self.directors = [FastlyDirector(d, validate_choices) for d in cfg.get('directors') or []]
+        self.gzips = [FastlyGzip(g, validate_choices) for g in cfg.get('gzips') or []]
+        self.headers = [FastlyHeader(h, validate_choices) for h in cfg.get('headers') or []]
+        self.response_objects = [FastlyResponseObject(r, validate_choices) for r in cfg.get('response_objects') or []]
+        self.request_settings = [FastlyRequestSetting(r, validate_choices) for r in cfg.get('request_settings') or []]
         self.uploads = []
-        self.snippets = []
-        self.syslog = []
-        self.settings = FastlySettings(dict(), validate_choices)
-
-        if 'domains' in configuration and configuration['domains'] is not None:
-            for domain in configuration['domains']:
-                if domain['name']:
-                    self.domains.append(FastlyDomain(domain, validate_choices))
-
-        if 'healthchecks' in configuration and configuration['healthchecks'] is not None:
-            for healthcheck in configuration['healthchecks']:
-                self.healthchecks.append(FastlyHealthcheck(healthcheck, validate_choices))
-
-        if 'backends' in configuration and configuration['backends'] is not None:
-            for backend in configuration['backends']:
-                self.backends.append(FastlyBackend(backend, validate_choices))
-
-        if 'cache_settings' in configuration and configuration['cache_settings'] is not None:
-            for cache_settings in configuration['cache_settings']:
-                self.cache_settings.append(FastlyCacheSettings(cache_settings, validate_choices))
-
-        if 'conditions' in configuration and configuration['conditions'] is not None:
-            for condition in configuration['conditions']:
-                self.conditions.append(FastlyCondition(condition, validate_choices))
-
-        if 'directors' in configuration and configuration['directors'] is not None:
-            for director in configuration['directors']:
-                self.directors.append(FastlyDirector(director, validate_choices))
-
-        if 'gzips' in configuration and configuration['gzips'] is not None:
-            for gzip in configuration['gzips']:
-                self.gzips.append(FastlyGzip(gzip, validate_choices))
-
-        if 'headers' in configuration and configuration['headers'] is not None:
-            for header in configuration['headers']:
-                self.headers.append(FastlyHeader(header, validate_choices))
-
-        if 'request_settings' in configuration and configuration['request_settings'] is not None:
-            for request_setting in configuration['request_settings']:
-                self.request_settings.append(FastlyRequestSetting(request_setting, validate_choices))
-
-        if 'response_objects' in configuration and configuration['response_objects'] is not None:
-            for response_object in configuration['response_objects']:
-                self.response_objects.append(FastlyResponseObject(response_object, validate_choices))
-
-        if 'uploads' in configuration and configuration['uploads'] is not None:
-            for upload in configuration['uploads']:
-                self.uploads.append(FastlyVclUpload(upload, validate_choices))
-
-        if 'snippets' in configuration and configuration['snippets'] is not None:
-            for snippet in configuration['snippets']:
-                self.snippets.append(FastlyVclSnippet(snippet, validate_choices))
-
-        if 'syslog' in configuration and configuration['syslog'] is not None:
-            for sysloglog in configuration['syslog']:
-                self.syslog.append(Fastlysyslog(sysloglog, validate_choices))
-
-        if 'settings' in configuration and configuration['settings'] is not None:
-            self.settings = FastlySettings(configuration['settings'], validate_choices)
+        self.snippets = [FastlyVclSnippet(s, validate_choices) for s in cfg.get('snippets') or []]
+        self.s3s = [FastlyS3Logging(s, validate_choices) for s in cfg.get('s3s') or []]
+        self.syslogs = [FastlySyslogLogging(s, validate_choices) for s in cfg.get('syslogs') or []]
+        self.settings = FastlySettings(cfg.get('settings'), validate_choices)
 
     def __eq__(self, other):
         return sorted(self.domains, key=FastlyDomain.sort_key) == sorted(other.domains, key=FastlyDomain.sort_key) \
-               and sorted(self.healthchecks, key=FastlyHealthcheck.sort_key) == sorted(other.healthchecks, key=FastlyHealthcheck.sort_key) \
-               and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
-               and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
-               and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
-               and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
-               and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
-               and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
-               and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
-               and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
-               and sorted(self.uploads, key=FastlyVclUpload.sort_key) == sorted(other.uploads, key=FastlyVclUpload.sort_key) \
-               and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
-               and sorted(self.syslog, key=Fastlysyslog.sort_key) == sorted(other.syslog, key=Fastlysyslog.sort_key) \
-               and self.settings == other.settings
+            and sorted(self.healthchecks, key=FastlyHealthcheck.sort_key) == sorted(other.healthchecks, key=FastlyHealthcheck.sort_key) \
+            and sorted(self.backends, key=FastlyBackend.sort_key) == sorted(other.backends, key=FastlyBackend.sort_key) \
+            and sorted(self.cache_settings, key=FastlyCacheSettings.sort_key) == sorted(other.cache_settings, key=FastlyCacheSettings.sort_key) \
+            and sorted(self.conditions, key=FastlyCondition.sort_key) == sorted(other.conditions, key=FastlyCondition.sort_key) \
+            and sorted(self.directors, key=FastlyDirector.sort_key) == sorted(other.directors, key=FastlyDirector.sort_key) \
+            and sorted(self.gzips, key=FastlyGzip.sort_key) == sorted(other.gzips, key=FastlyGzip.sort_key) \
+            and sorted(self.headers, key=FastlyHeader.sort_key) == sorted(other.headers, key=FastlyHeader.sort_key) \
+            and sorted(self.request_settings, key=FastlyRequestSetting.sort_key) == sorted(other.request_settings, key=FastlyRequestSetting.sort_key) \
+            and sorted(self.response_objects, key=FastlyResponseObject.sort_key) == sorted(other.response_objects, key=FastlyResponseObject.sort_key) \
+            and sorted(self.uploads, key=FastlyVclUpload.sort_key) == sorted(other.uploads, key=FastlyVclUpload.sort_key) \
+            and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
+            and sorted(self.s3s, key=FastlyS3Logging.sort_key) == sorted(other.s3s, key=FastlyS3Logging.sort_key) \
+            and sorted(self.syslogs, key=FastlySyslogLogging.sort_key) == sorted(other.syslogs, key=FastlySyslogLogging.sort_key) \
+            and self.settings == other.settings
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -703,352 +721,303 @@ class FastlyClient(object):
         body = None
         if payload is not None:
             body = json.dumps(payload, cls=FastlyObjectEncoder)
-
         conn = httplib.HTTPSConnection(self.FASTLY_API_HOST)
         conn.request(method, path, body, headers)
-        return FastlyResponse(conn.getresponse())
+        return FastlyResponse(conn.getresponse(), method, path)
 
     def get_active_version(self, service_id):
-        response = self._request('/service/%s/version/active' % service_id)
+        response = self._request('/service/%s/version/active' % urllib.quote(service_id, ''))
         if response.status == 200:
             cloned_from_version = response.payload['number']
             return cloned_from_version
 
-    def clone_old_version(self, service_id, version_to_clone):
-        response = self._request('/service/%s/version/%s/clone' % (service_id, version_to_clone), 'PUT')
+    def clone_version(self, service_id, version_to_clone):
+        response = self._request('/service/%s/version/%s/clone' % (urllib.quote(service_id, ''), version_to_clone), 'PUT')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Could not clone version '%s' for service '%s': %s" % (version_to_clone, service_id, response.payload['detail']))
+        raise Exception("Could not clone version '%s' for service '%s': %s" % (version_to_clone, service_id, response.error()))
 
     def get_service_by_name(self, service_name):
-        response = self._request('/service/search?name=%s' % urllib.quote(service_name))
+        response = self._request('/service/search?name=%s' % urllib.quote(service_name, ''))
         if response.status == 200:
             service_id = response.payload['id']
             return self.get_service(service_id)
-        elif response.status == 404:
+        if response.status == 404:
             return None
-        else:
-            raise Exception("Error searching for service '%s'" % service_name)
+        raise Exception("Error searching for service '%s'" % service_name)
 
     def get_service(self, service_id):
-        response = self._request('/service/%s/details' % service_id)
+        response = self._request('/service/%s/details' % urllib.quote(service_id, ''))
         if response.status == 200:
             return FastlyService(response.payload)
-        elif response.status == 404:
+        if response.status == 404:
             return None
-        else:
-            raise Exception("Error fetching service details for service '%s'" % service_id)
+        raise Exception("Error fetching service details for service '%s'" % service_id)
 
     def create_service(self, service_name):
         response = self._request('/service', 'POST', {'name': service_name})
         if response.status == 200:
             return self.get_service(response.payload['id'])
-        else:
-            raise Exception("Error creating service with name '%s': %s" % (service_name, response.payload['detail']))
+        raise Exception("Error creating service with name '%s': %s" % (service_name, response.error()))
 
     def delete_service(self, service_name, deactivate_active_version=True):
         service = self.get_service_by_name(service_name)
         if service is None:
             return False
-
         if service.active_version is not None and deactivate_active_version:
             self.deactivate_version(service.id, service.active_version.number)
-
-        response = self._request('/service/%s' % urllib.quote(service.id), 'DELETE')
+        response = self._request('/service/%s' % urllib.quote(service.id, ''), 'DELETE')
         if response.status == 200:
             return True
-        else:
-            raise Exception("Error deleting service with name '%s' (%s)" % (service_name, response.payload['detail']))
+        raise Exception("Error deleting service with name '%s' (%s)" % (service_name, response.error()))
 
     def create_version(self, service_id):
-        response = self._request('/service/%s/version' % service_id, 'POST')
+        response = self._request('/service/%s/version' % urllib.quote(service_id, ''), 'POST')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating new version for service %s" % service_id)
+        raise Exception("Error creating new version for service %s" % service_id)
 
     def activate_version(self, service_id, version):
-        response = self._request('/service/%s/version/%s/activate' % (service_id, version), 'PUT')
+        response = self._request('/service/%s/version/%s/activate' % (urllib.quote(service_id, ''), version), 'PUT')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error activating version %s for service %s (%s)" % (version, service_id, response.payload['detail']))
+        raise Exception(
+            "Error activating version %s for service %s (%s)" % (version, service_id, response.error()))
 
     def deactivate_version(self, service_id, version):
-        response = self._request('/service/%s/version/%s/deactivate' % (service_id, version), 'PUT')
+        response = self._request('/service/%s/version/%s/deactivate' % (urllib.quote(service_id, ''), version), 'PUT')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error deactivating version %s for service %s (%s)" % (version, service_id, response.payload['detail']))
+        raise Exception(
+            "Error deactivating version %s for service %s (%s)" % (version, service_id, response.error()))
 
-    def get_domain(self, service_id, version):
-        response = self._request('/service/%s/version/%s/domain' % (service_id, version), 'GET')
+    def get_domain_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/domain' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving domain for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving domain for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_domain(self, service_id, version, domain):
-        response = self._request('/service/%s/version/%s/domain' % (service_id, version), 'POST', domain)
+        response = self._request('/service/%s/version/%s/domain' % (urllib.quote(service_id, ''), version), 'POST', domain)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating domain for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating domain for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
     def delete_domain(self, service_id, version, domain):
-        response = self._request('/service/%s/version/%s/domain/%s' % (service_id, version, domain),
+        response = self._request('/service/%s/version/%s/domain/%s' % (urllib.quote(service_id, ''), version, urllib.quote(domain, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting domain %s service %s, version %s (%s)" % (domain, service_id, version,
-                                                                                      response.payload['detail']))
-    def get_healthcheck(self, service_id, version):
-        response = self._request('/service/%s/version/%s/healthcheck' % (service_id, version), 'GET')
+        raise Exception("Error deleting domain %s service %s, version %s (%s)" % (domain, service_id, version,
+                                                                                  response.error()))
+
+    def get_healthcheck_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/healthcheck' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error getting healthcheck name service %s, version %s (%s)" % (service_id, version,
-                                                                                      response.payload['detail']))
+        raise Exception("Error getting healthcheck name service %s, version %s (%s)" % (service_id, version,
+                                                                                        response.error()))
 
     def create_healthcheck(self, service_id, version, healthcheck):
-        response = self._request('/service/%s/version/%s/healthcheck' % (service_id, version), 'POST', healthcheck)
+        response = self._request('/service/%s/version/%s/healthcheck' % (urllib.quote(service_id, ''), version), 'POST', healthcheck)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating healthcheck for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating healthcheck for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
     def delete_healthcheck(self, service_id, version, healthcheck):
-        response = self._request('/service/%s/version/%s/healthcheck/%s' % (service_id, version, healthcheck),
+        response = self._request('/service/%s/version/%s/healthcheck/%s' % (urllib.quote(service_id, ''), version, urllib.quote(healthcheck, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting healthcheck %s service %s, version %s (%s)" % (
-                healthcheck, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting healthcheck %s service %s, version %s (%s)" % (
+            healthcheck, service_id, version, response.error()))
 
-    def get_backend(self, service_id, version):
-        response = self._request('/service/%s/version/%s/backend' % (service_id, version), 'GET')
+    def get_backend_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/backend' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving backend for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving backend for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_backend(self, service_id, version, backend):
-        response = self._request('/service/%s/version/%s/backend' % (service_id, version), 'POST', backend)
+        response = self._request('/service/%s/version/%s/backend' % (urllib.quote(service_id, ''), version), 'POST', backend)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating backend for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating backend for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
     def delete_backend(self, service_id, version, backend):
-        response = self._request('/service/%s/version/%s/backend/%s' % (service_id, version, backend),
+        response = self._request('/service/%s/version/%s/backend/%s' % (urllib.quote(service_id, ''), version, urllib.quote(backend, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting backend %s service %s, version %s (%s)" % (
-                backend, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting backend %s service %s, version %s (%s)" % (
+            backend, service_id, version, response.error()))
 
-    def get_director(self, service_id, version):
-        response = self._request('/service/%s/version/%s/director' % (service_id, version), 'GET')
+    def get_director_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/director' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving director for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving director for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_director(self, service_id, version, director):
-        response = self._request('/service/%s/version/%s/director' % (service_id, version), 'POST', director)
+        response = self._request('/service/%s/version/%s/director' % (urllib.quote(service_id, ''), version), 'POST', director)
         if response.status != 200:
             raise Exception("Error creating director for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+                service_id, version, response.error()))
 
         payload = response.payload
         if director.backends is not None:
             for backend in director.backends:
-                response = self._request('/service/%s/version/%s/director/%s/backend/%s' % (service_id, version, director.name, backend), 'POST')
+                response = self._request('/service/%s/version/%s/director/%s/backend/%s' % (urllib.quote(service_id, ''), version, urllib.quote(director.name, ''), urllib.quote(backend, '')), 'POST')
                 if response.status != 200:
                     raise Exception("Error establishing a relationship between director %s and backend %s,  service %s, version %s (%s)" % (
-                        director.name, backend, service_id, version, response.payload['detail']))
+                        director.name, backend, service_id, version, response.error()))
         return payload
 
     def delete_director(self, service_id, version, director):
-        response = self._request('/service/%s/version/%s/director/%s' % (service_id, version, director),
+        response = self._request('/service/%s/version/%s/director/%s' % (urllib.quote(service_id, ''), version, urllib.quote(director, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting director %s service %s, version %s (%s)" % (
-                director, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting director %s service %s, version %s (%s)" % (
+            director, service_id, version, response.error()))
 
-    def get_cache_settings(self, service_id, version):
-        response = self._request('/service/%s/version/%s/cache_settings' % (service_id, version), 'GET')
+    def get_cache_settings_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/cache_settings' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving cache_settings for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving cache_settings for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_cache_settings(self, service_id, version, cache_settings):
-        response = self._request('/service/%s/version/%s/cache_settings' % (service_id, version), 'POST', cache_settings)
+        response = self._request('/service/%s/version/%s/cache_settings' % (urllib.quote(service_id, ''), version), 'POST', cache_settings)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating cache_settings for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating cache_settings for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
     def delete_cache_settings(self, service_id, version, cache_settings):
-        response = self._request('/service/%s/version/%s/backend/%s' % (service_id, version, cache_settings),
+        response = self._request('/service/%s/version/%s/cache_settings/%s' % (urllib.quote(service_id, ''), version, urllib.quote(cache_settings, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting cache_settings %s service %s, version %s (%s)" % (
-                cache_settings, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting cache_settings %s service %s, version %s (%s)" % (
+            cache_settings, service_id, version, response.error()))
 
-    def get_condition(self, service_id, version):
-        response = self._request('/service/%s/version/%s/condition' % (service_id, version), 'GET')
+    def get_condition_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/condition' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving condition for service %s, version %s (%s)" % (service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving condition for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_condition(self, service_id, version, condition):
-        response = self._request('/service/%s/version/%s/condition' % (service_id, version), 'POST', condition)
+        response = self._request('/service/%s/version/%s/condition' % (urllib.quote(service_id, ''), version), 'POST', condition)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating condition for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating condition for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
     def delete_condition(self, service_id, version, condition):
-        response = self._request('/service/%s/version/%s/condition/%s' % (service_id, version, condition),
-                                 'DELETE')
+        response = self._request('/service/%s/version/%s/condition/%s' % (urllib.quote(service_id, ''), version, urllib.quote(condition, '')), 'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting condition %s service %s, version %s (%s)" % (
-                condition, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting condition %s service %s, version %s (%s)" % (
+            condition, service_id, version, response.error()))
 
-    def get_gzip(self, service_id, version):
-        response = self._request('/service/%s/version/%s/gzip' % (service_id, version), 'GET')
+    def get_gzip_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/gzip' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving gzip for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving gzip for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_gzip(self, service_id, version, gzip):
-        response = self._request('/service/%s/version/%s/gzip' % (service_id, version), 'POST',
-                                 gzip)
+        response = self._request('/service/%s/version/%s/gzip' % (urllib.quote(service_id, ''), version), 'POST', gzip)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating gzip for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating gzip for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
     def delete_gzip(self, service_id, version, gzip):
-        response = self._request('/service/%s/version/%s/backend/%s' % (service_id, version, gzip),
+        response = self._request('/service/%s/version/%s/gzip/%s' % (urllib.quote(service_id, ''), version, urllib.quote(gzip, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting gzip %s service %s, version %s (%s)" % (
-                gzip, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting gzip %s service %s, version %s (%s)" % (
+            gzip, service_id, version, response.error()))
 
-    def get_header(self, service_id, version):
-        response = self._request('/service/%s/version/%s/header' % (service_id, version), 'GET')
+    def get_header_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/header' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving header for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving header for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_header(self, service_id, version, header):
-        response = self._request('/service/%s/version/%s/header' % (service_id, version), 'POST', header)
+        response = self._request('/service/%s/version/%s/header' % (urllib.quote(service_id, ''), version), 'POST', header)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating header for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating header for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
     def delete_header(self, service_id, version, header):
-        response = self._request('/service/%s/version/%s/header/%s' % (service_id, version, header),
+        response = self._request('/service/%s/version/%s/header/%s' % (urllib.quote(service_id, ''), version, urllib.quote(header, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting header %s service %s, version %s (%s)" % (
-                header, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting header %s service %s, version %s (%s)" % (header, service_id, version, response.error()))
 
-    def get_request_setting(self, service_id, version):
-        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'GET')
+    def get_request_settings_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/request_settings' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving request_settings for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving request_settings for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_request_setting(self, service_id, version, request_setting):
-        response = self._request('/service/%s/version/%s/request_settings' % (service_id, version), 'POST',
+        response = self._request('/service/%s/version/%s/request_settings' % (urllib.quote(service_id, ''), version), 'POST',
                                  request_setting)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating request setting for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating request setting for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
-    def delete_request_setting(self, service_id, version, request_setting):
-        response = self._request('/service/%s/version/%s/request_settings/%s' % (service_id, version, request_setting),
+    def delete_request_settings(self, service_id, version, request_setting):
+        response = self._request('/service/%s/version/%s/request_settings/%s' % (urllib.quote(service_id, ''), version, urllib.quote(request_setting, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting request_setting %s service %s, version %s (%s)" % (
-                request_setting, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting request_setting %s service %s, version %s (%s)" % (
+            request_setting, service_id, version, response.error()))
 
-    def get_response_object(self, service_id, version):
-        response = self._request('/service/%s/version/%s/response_object' % (service_id, version), 'GET')
+    def get_response_objects_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/response_object' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving response_object for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving response_object for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_response_object(self, service_id, version, response_object):
-        response = self._request('/service/%s/version/%s/response_object' % (service_id, version), 'POST',
+        response = self._request('/service/%s/version/%s/response_object' % (urllib.quote(service_id, ''), version), 'POST',
                                  response_object)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating response object for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating response object for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
     def delete_response_object(self, service_id, version, response_object):
-        response = self._request('/service/%s/version/%s/response_object/%s' % (service_id, version, response_object),
+        response = self._request('/service/%s/version/%s/response_object/%s' % (urllib.quote(service_id, ''), version, urllib.quote(response_object, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting response_object %s service %s, version %s (%s)" % (
-                response_object, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting response_object %s service %s, version %s (%s)" % (
+            response_object, service_id, version, response.error()))
 
     def get_custom_vcl(self, service_id, version):
         response = self._request('/service/%s/version/%s/vcl' % (service_id, version), 'GET')
@@ -1080,65 +1049,80 @@ class FastlyClient(object):
             raise Exception("Error deleting vcl %s service %s, version %s (%s)" % (
                 vcl, service_id, version, response.payload['detail']))
 
-    def get_vcl_snippet(self, service_id, version):
-        response = self._request('/service/%s/version/%s/snippet' % (service_id, version), 'GET')
+    def get_vcl_snippet_name(self, service_id, version):
+        response = self._request('/service/%s/version/%s/snippet' % (urllib.quote(service_id, ''), version), 'GET')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception(
-                "Error retrieving vcl snippt for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+        raise Exception(
+            "Error retrieving vcl snippt for service %s, version %s (%s)" % (service_id, version, response.error()))
 
     def create_vcl_snippet(self, service_id, version, vcl_snippet):
-        response = self._request('/service/%s/version/%s/snippet' % (service_id, version), 'POST', vcl_snippet)
+        response = self._request('/service/%s/version/%s/snippet' % (urllib.quote(service_id, ''), version), 'POST', vcl_snippet)
 
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating VCL snippet '%s' for service %s, version %s (%s)" % (vcl_snippet['name'], service_id, version, response.payload['detail']))
+        raise Exception("Error creating VCL snippet '%s' for service %s, version %s (%s)" % (vcl_snippet['name'], service_id, version, response.error()))
 
     def delete_vcl_snippet(self, service_id, version, snippet):
-        response = self._request('/service/%s/version/%s/snippet/%s' % (service_id, version, snippet),
+        response = self._request('/service/%s/version/%s/snippet/%s' % (urllib.quote(service_id, ''), version, urllib.quote(snippet, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error deleting vcl snippet %s service %s, version %s (%s)" % (
-                snippet, service_id, version, response.payload['detail']))
+        raise Exception("Error deleting vcl snippet %s service %s, version %s (%s)" % (
+            snippet, service_id, version, response.error()))
 
-    def get_syslog(self, service_id, version):
-        response = self._request('/service/%s/version/%s/syslog' % (service_id, version), 'GET')
+    def get_s3_loggers(self, service_id, version):
+        response = self._request('/service/%s/version/%s/logging/s3' % (urllib.quote(service_id, ''), version), 'GET')
+        if response.status == 200:
+            return response.payload
+        raise Exception(
+            "Error retrieving S3 loggers for service %s, version %s (%s)" % (service_id, version, response.error()))
+
+    def create_s3_logger(self, service_id, version, s3):
+        response = self._request('/service/%s/version/%s/logging/s3' % (service_id, version), 'POST', s3)
+
         if response.status == 200:
             return response.payload
         else:
-            raise Exception(
-                "Error retrieving syslog name for service %s, version %s (%s)" % (
-                    service_id, version, response.payload['detail']))
+            raise Exception("Error creating S3 logger '%s' for service %s, version %s (%s)" % (s3.name, service_id, version, response.error()))
 
-    def create_syslog(self, service_id, version, create_syslog):
-        response = self._request('/service/%s/version/%s/logging/syslog' % (service_id, version), 'POST', create_syslog)
-
-        if response.status == 200:
-            return response.payload
-        else:
-            raise Exception("Error creating syslog log '%s' for service %s, version %s (%s)" % (create_syslog['name'], service_id, version, response.payload['detail']))
-
-    def delete_syslog(self, service_id, version, syslog):
-        response = self._request('/service/%s/version/%s/syslog/%s' % (service_id, version, syslog),
+    def delete_s3_logger(self, service_id, version, s3_logger):
+        response = self._request('/service/%s/version/%s/logging/s3/%s' % (urllib.quote(service_id, ''), version, urllib.quote(s3_logger, '')),
                                  'DELETE')
         if response.status == 200:
             return response.payload
+        raise Exception("Error deleting S3 logger %s service %s, version %s (%s)" % (
+            s3_logger, service_id, version, response.error()))
+
+    def get_syslog_loggers(self, service_id, version):
+        response = self._request('/service/%s/version/%s/logging/syslog' % (urllib.quote(service_id, ''), version), 'GET')
+        if response.status == 200:
+            return response.payload
+        raise Exception(
+            "Error retrieving syslog loggers for service %s, version %s (%s)" % (service_id, version, response.error()))
+
+    def create_syslog_logger(self, service_id, version, syslog):
+        response = self._request('/service/%s/version/%s/logging/syslog' % (service_id, version), 'POST', syslog)
+
+        if response.status == 200:
+            return response.payload
         else:
-            raise Exception("Error deleting syslog %s service %s, version %s (%s)" % (
-                syslog, service_id, version, response.payload['detail']))
+            raise Exception("Error creating syslog logger '%s' for service %s, version %s (%s)" % (syslog.name, service_id, version, response.error()))
+
+    def delete_syslog_logger(self, service_id, version, syslog_logger):
+        response = self._request('/service/%s/version/%s/logging/syslog/%s' % (urllib.quote(service_id, ''), version, urllib.quote(syslog_logger, '')),
+                                 'DELETE')
+        if response.status == 200:
+            return response.payload
+        raise Exception("Error deleting syslog logger %s service %s, version %s (%s)" % (
+            syslog_logger, service_id, version, response.error()))
 
     def create_settings(self, service_id, version, settings):
-        response = self._request('/service/%s/version/%s/settings' % (service_id, version), 'PUT', settings)
+        response = self._request('/service/%s/version/%s/settings' % (urllib.quote(service_id, ''), version), 'PUT', settings)
         if response.status == 200:
             return response.payload
-        else:
-            raise Exception("Error creating settings for service %s, version %s (%s)" % (
-                service_id, version, response.payload['detail']))
+        raise Exception("Error creating settings for service %s, version %s (%s)" % (
+            service_id, version, response.error()))
 
 
 class FastlyStateEnforcerResult(object):
@@ -1153,7 +1137,6 @@ class FastlyStateEnforcer(object):
         self.client = client
 
     def apply_configuration(self, service_name, fastly_configuration, activate_new_version=True):
-
         actions = []
         service = self.client.get_service_by_name(service_name)
 
@@ -1161,47 +1144,56 @@ class FastlyStateEnforcer(object):
             service = self.client.create_service(service_name)
             actions.append("Created new service %s" % service_name)
 
-        if activate_new_version:
+        if service.active_version is not None:
             current_version = service.active_version
         else:
             current_version = service.latest_version
 
-        if current_version is None:
-            self.deploy_version_with_configuration(service.id, fastly_configuration,
-                                                   activate_new_version)
-            actions.append("Deployed new version because service has no active version")
-        elif fastly_configuration != current_version.configuration:
-            version_number = self.clone_old_version(service.id)
-            self.delete_version_before_apply_config(service.id, version_number, fastly_configuration)
-            self.deploy_version_with_configuration(service.id, fastly_configuration,
-                                                   activate_new_version, True, version_number)
-            actions.append("Deployed new version because settings are not up to date")
+        hasNoVersion = current_version is None
+        hasChanged = not hasNoVersion and fastly_configuration != current_version.configuration
+
+        if hasNoVersion or hasChanged:
+            if hasNoVersion:
+                version_number = self.create_new_version(service.id)
+                actions.append("Created a new version because service has no active version")
+            elif hasChanged:
+                version_number = self.clone_version(service.id, current_version.number)
+                actions.append("Cloned an old version because service configuration was not up to date")
+                self.reset_version(service.id, version_number)
+
+            self.configure_version(service.id, fastly_configuration, version_number)
+
+            if activate_new_version:
+                self.client.activate_version(service.id, version_number)
 
         changed = len(actions) > 0
         service = self.client.get_service(service.id)
         return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service)
 
-    def clone_old_version(self, service_id):
-        version_to_clone = self.client.get_active_version(service_id)
-        clone = self.client.clone_old_version(service_id, version_to_clone)
+    def create_new_version(self, service_id):
+        version = self.client.create_version(service_id)
+        return version['number']
+
+    def clone_version(self, service_id, version):
+        clone = self.client.clone_version(service_id, version)
         clone_version_number = clone['number']
         return clone_version_number
 
-    def delete_version_before_apply_config(self, service_id, version_to_delete, configuration):
-
-        domain = self.client.get_domain(service_id, version_to_delete)
-        healthcheck = self.client.get_healthcheck(service_id, version_to_delete)
-        condition = self.client.get_condition(service_id, version_to_delete)
-        backend = self.client.get_backend(service_id, version_to_delete)
-        director = self.client.get_director(service_id, version_to_delete)
-        cache_settings = self.client.get_cache_settings(service_id, version_to_delete)
-        gzips = self.client.get_gzip(service_id, version_to_delete)
-        headers = self.client.get_header(service_id, version_to_delete)
-        request_settings = self.client.get_request_setting(service_id, version_to_delete)
-        response_objects = self.client.get_response_object(service_id, version_to_delete)
+    def reset_version(self, service_id, version_to_delete):
+        domain = self.client.get_domain_name(service_id, version_to_delete)
+        healthcheck = self.client.get_healthcheck_name(service_id, version_to_delete)
+        condition = self.client.get_condition_name(service_id, version_to_delete)
+        backend = self.client.get_backend_name(service_id, version_to_delete)
+        director = self.client.get_director_name(service_id, version_to_delete)
+        cache_settings = self.client.get_cache_settings_name(service_id, version_to_delete)
+        gzips = self.client.get_gzip_name(service_id, version_to_delete)
+        headers = self.client.get_header_name(service_id, version_to_delete)
+        request_settings = self.client.get_request_settings_name(service_id, version_to_delete)
+        response_objects = self.client.get_response_objects_name(service_id, version_to_delete)
         vcl = self.client.get_custom_vcl(service_id, version_to_delete)
-        snippets = self.client.get_vcl_snippet(service_id, version_to_delete)
-        syslog = self.client.get_syslog(service_id, version_to_delete)
+        snippets = self.client.get_vcl_snippet_name(service_id, version_to_delete)
+        s3_loggers = self.client.get_s3_loggers(service_id, version_to_delete)
+        syslog_loggers = self.client.get_syslog_loggers(service_id, version_to_delete)
 
         for domain_name in domain:
             self.client.delete_domain(service_id, version_to_delete, domain_name['name'])
@@ -1219,7 +1211,7 @@ class FastlyStateEnforcer(object):
             self.client.delete_backend(service_id, version_to_delete, director_name['name'])
 
         for cache_settings_name in cache_settings:
-            self.client.delete_cache_setting(service_id, version_to_delete, cache_settings_name['name'])
+            self.client.delete_cache_settings(service_id, version_to_delete, cache_settings_name['name'])
 
         for gzip_name in gzips:
             self.client.delete_gzip(service_id, version_to_delete, gzip_name['name'])
@@ -1228,7 +1220,7 @@ class FastlyStateEnforcer(object):
             self.client.delete_header(service_id, version_to_delete, header_name['name'])
 
         for request_setting_name in request_settings:
-            self.client.delete_request_setting(service_id, version_to_delete, request_setting_name['name'])
+            self.client.delete_request_settings(service_id, version_to_delete, request_setting_name['name'])
 
         for response_object_name in response_objects:
             self.client.delete_response_object(service_id, version_to_delete, response_object_name['name'])
@@ -1239,16 +1231,13 @@ class FastlyStateEnforcer(object):
         for vcl_snippet_name in snippets:
             self.client.delete_vcl_snippet(service_id, version_to_delete, vcl_snippet_name['name'])
 
-        for syslog_name in syslog:
-            self.client.delete_syslog(service_id, version_to_delete, syslog_name['name'])
+        for logger in s3_loggers:
+            self.client.delete_s3_logger(service_id, version_to_delete, logger['name'])
 
-    def deploy_version_with_configuration(self, service_id, configuration, activate_version,
-                                          clone=False, version_number=""):
+        for logger in syslog_loggers:
+            self.client.delete_syslog_logger(service_id, version_to_delete, logger['name'])
 
-        if not clone:
-            version = self.client.create_version(service_id)
-            version_number = version['number']
-
+    def configure_version(self, service_id, configuration, version_number):
         for domain in configuration.domains:
             self.client.create_domain(service_id, version_number, domain)
 
@@ -1288,14 +1277,14 @@ class FastlyStateEnforcer(object):
         for vcl_snippet in configuration.snippets:
             self.client.create_vcl_snippet(service_id, version_number, vcl_snippet)
 
-        for create_syslog in configuration.syslog:
-            self.client.create_syslog(service_id, version_number, create_syslog)
+        for logger in configuration.s3s:
+            self.client.create_s3_logger(service_id, version_number, logger)
+
+        for logger in configuration.syslogs:
+            self.client.create_syslog_logger(service_id, version_number, logger)
 
         if configuration.settings:
             self.client.create_settings(service_id, version_number, configuration.settings)
-
-        if activate_version:
-            self.client.activate_version(service_id, version_number)
 
     def delete_service(self, service_name):
         service = self.client.get_service_by_name(service_name)
@@ -1332,8 +1321,9 @@ class FastlyServiceModule(object):
                 request_settings=dict(default=None, required=False, type='list'),
                 response_objects=dict(default=None, required=False, type='list'),
                 upload_vcls=dict(default=None, required=False, type='list'),
-                create_syslogs=dict(default=None, required=False, type='list'),
                 vcl_snippets=dict(default=None, required=False, type='list'),
+                s3s=dict(default=None, required=False, type='list'),
+                syslogs=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
             ),
             supports_check_mode=False
@@ -1363,13 +1353,14 @@ class FastlyServiceModule(object):
                 'response_objects': self.module.params['response_objects'],
                 'uploads': self.module.params['upload_vcls'],
                 'snippets': self.module.params['vcl_snippets'],
-                'syslog': self.module.params['create_syslogs'],
+                's3s': self.module.params['s3s'],
+                'syslogs': self.module.params['syslogs'],
                 'settings': self.module.params['settings']
             })
         except FastlyValidationError as err:
             self.module.fail_json(msg='Error in ' + err.cls + ': ' + err.message)
         except Exception as err:
-            self.module.fail_json(msg=err.message)
+            self.module.fail_json(msg=err.message, trace=traceback.format_exc())
 
     def run(self):
         try:
@@ -1390,7 +1381,7 @@ class FastlyServiceModule(object):
                 self.module.exit_json(changed=result.changed, service_id=result.service.id, actions=result.actions)
 
         except Exception as err:
-            self.module.fail_json(msg=err.message)
+            self.module.fail_json(msg=err.message, trace=traceback.format_exc())
 
 
 def main():
