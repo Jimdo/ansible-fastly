@@ -1067,13 +1067,9 @@ class FastlyClient(object):
 
     def create_custom_vcl(self, service_id, version, upload_vcl):
         response = self._request('/service/%s/version/%s/vcl' % (urllib.quote(service_id, ''), version), 'POST', upload_vcl)
-
         if response.status == 200:
             response = self._request('/service/%s/version/%s/vcl/Main.vcl/main' % (urllib.quote(service_id, ''), version), 'PUT', upload_vcl)
-            if response.status == 200:
-                return response.payload
-            else:
-                raise Exception("Error uploading VCL '%s' for service %s, version %s (%s)" % (upload_vcl['name'], service_id, version, response.payload['detail']))
+            return response.payload
         else:
             raise Exception("Error uploading VCL '%s' for service %s, version %s (%s)" % (upload_vcl['name'], service_id, version, response.payload['detail']))
 
