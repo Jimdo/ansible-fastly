@@ -70,6 +70,10 @@ options:
         required: false
         description:
             - List of Syslog loggers
+    cloudfiles:
+        required: false
+        description:
+            - List of CloudFiles loggers
     settings:
         required: false
         description:
@@ -605,6 +609,44 @@ class FastlySyslogLogging(FastlyObject):
         return f.name
 
 
+class FastlyCloudFilesLogging(FastlyObject):
+    schema = {
+        'name': dict(required=True, type='str', default=None),
+        'access_key': dict(required=False, type='str', default=None),
+        'bucket_name': dict(required=False, type='str', default=None),
+        'format': dict(required=False, type='str', default='%{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b'),
+        'format_version': dict(required=False, type='int', default=2),
+        'gzip_level': dict(required=False, type='int', default=0),
+        'message_type': dict(required=False, type='str', default="classic", choices=['classic', 'loggly', 'logplex', 'blank', None]),
+        'path': dict(required=False, type='str', default='/'),
+        'period': dict(required=False, type='int', default=3600),
+        'placement': dict(required=False, type='str', default=None),
+        'region': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'response_condition': dict(required=False, type='str', default=None, exclude_empty_str=True),
+        'timestamp_format': dict(required=False, type='str', default='%Y-%m-%dT%H'),
+        'user': dict(required=True, type='str', default=None),
+    }
+
+    def __init__(self, config, validate_choices):
+        self.name = self.read_config(config, validate_choices, 'name')
+        self.access_key = self.read_config(config, validate_choices, 'access_key')
+        self.bucket_name = self.read_config(config, validate_choices, 'bucket_name')
+        self.format = self.read_config(config, validate_choices, 'format')
+        self.format_version = self.read_config(config, validate_choices, 'format_version')
+        self.gzip_level = self.read_config(config, validate_choices, 'gzip_level')
+        self.message_type = self.read_config(config, validate_choices, 'message_type')
+        self.path = self.read_config(config, validate_choices, 'path')
+        self.period = self.read_config(config, validate_choices, 'period')
+        self.placement = self.read_config(config, validate_choices, 'placement')
+        self.region = self.read_config(config, validate_choices, 'region')
+        self.response_condition = self.read_config(config, validate_choices, 'response_condition')
+        self.timestamp_format = self.read_config(config, validate_choices, 'timestamp_format')
+        self.user = self.read_config(config, validate_choices, 'user')
+
+    def sort_key(f):
+        return f.name
+
+
 class FastlySettings(FastlyObject):
     schema = {
         'general.default_ttl': dict(required=False, type='int', default=3600)
@@ -634,6 +676,7 @@ class FastlyConfiguration(object):
         self.snippets = [FastlyVclSnippet(s, validate_choices) for s in cfg.get('snippets') or []]
         self.s3s = [FastlyS3Logging(s, validate_choices) for s in cfg.get('s3s') or []]
         self.syslogs = [FastlySyslogLogging(s, validate_choices) for s in cfg.get('syslogs') or []]
+        self.cloudfiles = [FastlyCloudFilesLogging(s, validate_choices) for s in cfg.get('cloudfiles') or []]
         self.settings = FastlySettings(cfg.get('settings'), validate_choices)
 
     def __eq__(self, other):
@@ -650,6 +693,7 @@ class FastlyConfiguration(object):
             and sorted(self.snippets, key=FastlyVclSnippet.sort_key) == sorted(other.snippets, key=FastlyVclSnippet.sort_key) \
             and sorted(self.s3s, key=FastlyS3Logging.sort_key) == sorted(other.s3s, key=FastlyS3Logging.sort_key) \
             and sorted(self.syslogs, key=FastlySyslogLogging.sort_key) == sorted(other.syslogs, key=FastlySyslogLogging.sort_key) \
+            and sorted(self.cloudfiles, key=FastlyCloudFilesLogging.sort_key) == sorted(other.cloudfiles, key=FastlyCloudFilesLogging.sort_key) \
             and self.settings == other.settings
 
     def __ne__(self, other):
@@ -1060,6 +1104,29 @@ class FastlyClient(object):
         raise Exception("Error deleting syslog logger %s service %s, version %s (%s)" % (
             syslog_logger, service_id, version, response.error()))
 
+    def get_cloudfiles_loggers(self, service_id, version):
+        response = self._request('/service/%s/version/%s/logging/cloudfiles' % (urllib.quote(service_id, ''), version), 'GET')
+        if response.status == 200:
+            return response.payload
+        raise Exception(
+            "Error retrieving cloudfiles loggers for service %s, version %s (%s)" % (service_id, version, response.error()))
+
+    def create_cloudfiles_logger(self, service_id, version, cloudfiles):
+        response = self._request('/service/%s/version/%s/logging/cloudfiles' % (service_id, version), 'POST', cloudfiles)
+
+        if response.status == 200:
+            return response.payload
+        else:
+            raise Exception("Error creating cloudfiles logger '%s' for service %s, version %s (%s)" % (cloudfiles.name, service_id, version, response.error()))
+
+    def delete_cloudfiles_logger(self, service_id, version, cloudfiles_logger):
+        response = self._request('/service/%s/version/%s/logging/cloudfiles/%s' % (urllib.quote(service_id, ''), version, urllib.quote(cloudfiles_logger, '')),
+                                 'DELETE')
+        if response.status == 200:
+            return response.payload
+        raise Exception("Error deleting cloudfiles logger %s service %s, version %s (%s)" % (
+            cloudfiles_logger, service_id, version, response.error()))
+
     def create_settings(self, service_id, version, settings):
         response = self._request('/service/%s/version/%s/settings' % (urllib.quote(service_id, ''), version), 'PUT', settings)
         if response.status == 200:
@@ -1136,6 +1203,7 @@ class FastlyStateEnforcer(object):
         snippets = self.client.get_vcl_snippet_name(service_id, version_to_delete)
         s3_loggers = self.client.get_s3_loggers(service_id, version_to_delete)
         syslog_loggers = self.client.get_syslog_loggers(service_id, version_to_delete)
+        cloudfiles_loggers = self.client.get_cloudfiles_loggers(service_id, version_to_delete)
 
         for domain_name in domain:
             self.client.delete_domain(service_id, version_to_delete, domain_name['name'])
@@ -1175,6 +1243,9 @@ class FastlyStateEnforcer(object):
 
         for logger in syslog_loggers:
             self.client.delete_syslog_logger(service_id, version_to_delete, logger['name'])
+
+        for logger in cloudfiles_loggers:
+            self.client.delete_cloudfiles_logger(service_id, version_to_delete, logger['name'])
 
     def configure_version(self, service_id, configuration, version_number):
         for domain in configuration.domains:
@@ -1219,6 +1290,9 @@ class FastlyStateEnforcer(object):
         for logger in configuration.syslogs:
             self.client.create_syslog_logger(service_id, version_number, logger)
 
+        for logger in configuration.cloudfiles:
+            self.client.create_cloudfiles_logger(service_id, version_number, logger)
+
         if configuration.settings:
             self.client.create_settings(service_id, version_number, configuration.settings)
 
@@ -1259,6 +1333,7 @@ class FastlyServiceModule(object):
                 vcl_snippets=dict(default=None, required=False, type='list'),
                 s3s=dict(default=None, required=False, type='list'),
                 syslogs=dict(default=None, required=False, type='list'),
+                cloudfiles=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
             ),
             supports_check_mode=False
@@ -1289,6 +1364,7 @@ class FastlyServiceModule(object):
                 'snippets': self.module.params['vcl_snippets'],
                 's3s': self.module.params['s3s'],
                 'syslogs': self.module.params['syslogs'],
+                'cloudfiles': self.module.params['cloudfiles'],
                 'settings': self.module.params['settings']
             })
         except FastlyValidationError as err:
