@@ -607,7 +607,7 @@ class FastlySyslogLogging(FastlyObject):
         'tls_ca_cert': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'tls_hostname': dict(required=False, type='str', default=None, exclude_empty_str=True),
         'token': dict(required=False, type='str', default=None),
-        'use_tls': dict(required=False, type='int', default=0),
+        'use_tls': dict(required=False, type='str', default='0'),
     }
 
     def __init__(self, config, validate_choices):
