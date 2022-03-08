@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  asd:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -32,7 +32,7 @@ jobs:
       - name: Check source code
         run: flake8 library
 
-      - name: Run integration test
+      - name: Run tests
         run: FASTLY_API_KEY=test python -m unittest discover tests
 
       - name: Check ansible syntax
