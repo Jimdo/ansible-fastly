@@ -1,0 +1,36 @@
+name: CI
+
+on: [pull_request, workflow_call]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '2.7'
+
+      - name: Setup pip
+        run: curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && sudo python2 get-pip.py
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create ansible.cfg with correct roles
+        run: printf '[defaults]\nroles_path=../' >ansible.cfg
+
+      - name: Create symlink
+        run: ln -snf $PWD ../Jimdo.fastly
+
+      - name: Check source code
+        run: flake8 library
+
+      - name: Run tests
+        run: FASTLY_API_KEY=test python -m unittest discover tests
+
+      - name: Check ansible syntax
+        run: ansible-playbook tests/test.yml -i tests/inventory --syntax-check
