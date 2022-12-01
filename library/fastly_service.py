@@ -1076,15 +1076,19 @@ class FastlyStateEnforcerResult(object):
 
 
 class FastlyStateEnforcer(object):
-    def __init__(self, client):
+    def __init__(self, client, check_mode=False):
         self.client = client
+        self.check_mode = check_mode
 
     def apply_configuration(self, service_name, fastly_configuration, activate_new_version=True):
         actions = []
         service = self.client.get_service_by_name(service_name)
 
         if service is None:
-            service = self.client.create_service(service_name)
+            if not self.check_mode:
+                service = self.client.create_service(service_name)
+            else:
+                service = FastlyService({'id': service_name, 'name': service_name, 'active_version': None, 'version': None})
             actions.append("Created new service %s" % service_name)
 
         if service.active_version is not None:
@@ -1097,20 +1101,24 @@ class FastlyStateEnforcer(object):
 
         if hasNoVersion or hasChanged:
             if hasNoVersion:
-                version_number = self.create_new_version(service.id)
+                if not self.check_mode:
+                    version_number = self.create_new_version(service.id)
                 actions.append("Created a new version because service has no active version")
             elif hasChanged:
-                version_number = self.clone_version(service.id, current_version.number)
+                if not self.check_mode:
+                    version_number = self.clone_version(service.id, current_version.number)
+                    self.reset_version(service.id, version_number)
                 actions.append("Cloned an old version because service configuration was not up to date")
-                self.reset_version(service.id, version_number)
 
-            self.configure_version(service.id, fastly_configuration, version_number)
+            if not self.check_mode:
+                self.configure_version(service.id, fastly_configuration, version_number)
 
-            if activate_new_version:
-                self.client.activate_version(service.id, version_number)
+                if activate_new_version:
+                    self.client.activate_version(service.id, version_number)
 
         changed = len(actions) > 0
-        service = self.client.get_service(service.id)
+        if not self.check_mode:
+            service = self.client.get_service(service.id)
         return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service)
 
     def create_new_version(self, service_id):
@@ -1230,7 +1238,10 @@ class FastlyStateEnforcer(object):
 
         actions = []
 
-        changed = self.client.delete_service(service_name)
+        if not self.check_mode:
+            changed = self.client.delete_service(service_name)
+        else:
+            changed = True
 
         if changed:
             actions.append('Deleted service %s' % service_name)
@@ -1261,7 +1272,7 @@ class FastlyServiceModule(object):
                 syslogs=dict(default=None, required=False, type='list'),
                 settings=dict(default=None, required=False, type='dict'),
             ),
-            supports_check_mode=False
+            supports_check_mode=True
         )
 
     def enforcer(self):
@@ -1271,7 +1282,7 @@ class FastlyServiceModule(object):
                 fastly_api_key = os.environ['FASTLY_API_KEY']
             else:
                 self.module.fail_json(msg="A Fastly API key is required for this module. Please set it and try again")
-        return FastlyStateEnforcer(FastlyClient(fastly_api_key))
+        return FastlyStateEnforcer(FastlyClient(fastly_api_key), self.module.check_mode)
 
     def configuration(self):
         try:
