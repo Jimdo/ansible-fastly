@@ -4,7 +4,7 @@ on: [pull_request, workflow_call]
 
 jobs:
   test:
-    runs-on: [ self-hosted, jimdo-runner-1core ]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
