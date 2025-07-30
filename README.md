@@ -36,6 +36,7 @@ $ ansible-galaxy install Jimdo.fastly
 | settings             | false    | Settings object                                                                               |         |
 | s3s                  | false    | List of S3 loggers                                                                            |         |
 | syslogs              | false    | List of Syslog loggers                                                                        |         |
+| cloudfiles           | false    | List of CloudFiles loggers                                                                    |         |
 | vcl_snippets         | false    | List of VCL snippets                                                                          |         |
 
 ### Backend
@@ -223,6 +224,28 @@ $ ansible-galaxy install Jimdo.fastly
 | tls_hostname                      | false    | string                                         |                                      |
 | token                             | false    | string                                         |                                      |
 | use_tls                           | false    | int                                            | 0                                    |
+
+
+### CloudFiles Logging
+
+[Fastly documentation](https://docs.fastly.com/api/logging#logging_cloudfiles)
+
+| Field                             | Required | Type                                           | Default                              |
+|:----------------------------------|:---------|:-----------------------------------------------|:-------------------------------------|
+| name                              | true     | string                                         |                                      |
+| access_key                        | false    | string                                         |                                      |
+| bucket_name                       | false    | string                                         |                                      |
+| format                            | false    | string                                         | %{%Y-%m-%dT%H:%M:%S}t %h "%r" %>s %b |
+| format_version                    | false    | integer                                        | 2                                    |
+| gzip_level                        | false    | integer                                        | 0                                    |
+| message_type                      | false    | enum ('classic', 'loggly', 'logplex', 'blank') | classic                              |
+| path                              | false    | string                                         | /                                    |
+| period                            | false    | integer                                        | 3600                                 |
+| placement                         | false    | string                                         |                                      |
+| region                            | false    | string                                         |                                      |
+| response_condition                | false    | string                                         | ''                                   |
+| timestamp_format                  | false    | string                                         | %Y-%m-%dT%H                          |
+| user                              | true     | string                                         |                                      |
 
 
 ### Settings
