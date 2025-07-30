@@ -145,6 +145,7 @@ import urllib
 import json
 import os
 import traceback
+import yaml
 
 from ansible.module_utils.basic import *  # noqa: F403
 
@@ -655,6 +656,15 @@ class FastlyConfiguration(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def to_yaml(self):
+        result = {}
+        for key, value in self.__dict__.iteritems():
+            if isinstance(value, list):
+                result[key] = [item.to_json() for item in value]
+            else:
+                result[key] = value.to_json()
+        return yaml.safe_dump(result)
+
 
 class FastlyVersion(object):
     def __init__(self, version_configuration):
@@ -1069,10 +1079,12 @@ class FastlyClient(object):
 
 
 class FastlyStateEnforcerResult(object):
-    def __init__(self, changed, actions, service):
+    def __init__(self, changed, actions, service, before='', after=''):
         self.changed = changed
         self.actions = actions
         self.service = service
+        self.before = before
+        self.after = after
 
 
 class FastlyStateEnforcer(object):
@@ -1094,6 +1106,11 @@ class FastlyStateEnforcer(object):
 
         hasNoVersion = current_version is None
         hasChanged = not hasNoVersion and fastly_configuration != current_version.configuration
+        if hasNoVersion:
+            before = ''
+        else:
+            before = current_version.configuration.to_yaml()
+        after = fastly_configuration.to_yaml()
 
         if hasNoVersion or hasChanged:
             if hasNoVersion:
@@ -1111,7 +1128,7 @@ class FastlyStateEnforcer(object):
 
         changed = len(actions) > 0
         service = self.client.get_service(service.id)
-        return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service)
+        return FastlyStateEnforcerResult(actions=actions, changed=changed, service=service, before=before, after=after)
 
     def create_new_version(self, service_id):
         version = self.client.create_version(service_id)
@@ -1304,15 +1321,20 @@ class FastlyServiceModule(object):
 
             if self.module.params['state'] == 'absent':
                 result = enforcer.delete_service(service_name)
-
-                service_id = None
-                if result.service is not None:
-                    service_id = result.service.id
-
-                self.module.exit_json(changed=result.changed, service_id=service_id, actions=result.actions)
             else:
                 result = enforcer.apply_configuration(service_name, self.configuration(), activate_new_version)
-                self.module.exit_json(changed=result.changed, service_id=result.service.id, actions=result.actions)
+
+            service_id = None
+            if result.service is not None:
+                service_id = result.service.id
+
+            module_result = {
+                'changed': result.changed,
+                'service_id': service_id,
+                'actions': result.actions,
+                'diff': {'before': result.before, 'after': result.after}
+            }
+            self.module.exit_json(**module_result)
 
         except Exception as err:
             self.module.fail_json(msg=err.message, trace=traceback.format_exc())
