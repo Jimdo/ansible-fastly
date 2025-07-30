@@ -140,8 +140,8 @@ EXAMPLES = '''
         response: Moved Permanently
 '''
 
-import httplib
-import urllib
+import http.client as httplib 
+import urllib.parse as urllib
 import json
 import os
 import traceback
@@ -234,7 +234,7 @@ class FastlyObject(object):
         return value
 
     def to_json(self):
-        return {k: v for k, v in self.__dict__.iteritems() if v or not self.schema[k].get('omit_empty', False)}
+        return {k: v for k, v in self.__dict__.items() if v or not self.schema[k].get('omit_empty', False)}
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -717,7 +717,7 @@ class FastlyClient(object):
             return self.get_service(service_id)
         if response.status == 404:
             return None
-        raise Exception("Error searching for service '%s'" % service_name)
+        raise Exception("Error searching for service '%s' : %s" % (service_name, response.error()))
 
     def get_service(self, service_id):
         response = self._request('/service/%s/details' % urllib.quote(service_id, ''))
@@ -725,7 +725,7 @@ class FastlyClient(object):
             return FastlyService(response.payload)
         if response.status == 404:
             return None
-        raise Exception("Error fetching service details for service '%s'" % service_id)
+        raise Exception("Error fetching service details for service '%s' : %s" % (service_id, response.error()))
 
     def create_service(self, service_name):
         response = self._request('/service', 'POST', {'name': service_name})
@@ -1315,7 +1315,7 @@ class FastlyServiceModule(object):
                 self.module.exit_json(changed=result.changed, service_id=result.service.id, actions=result.actions)
 
         except Exception as err:
-            self.module.fail_json(msg=err.message, trace=traceback.format_exc())
+            self.module.fail_json(msg=str(err), trace=traceback.format_exc())
 
 
 def main():
